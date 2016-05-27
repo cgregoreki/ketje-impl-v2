@@ -10,8 +10,7 @@
 
 
 #include <stdio.h>
-#include <string.h>
-#include <ncurses.h>		
+#include <string.h>	
 
 #define maxKeyBytes 400
 #define state_width	200
