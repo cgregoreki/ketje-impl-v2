@@ -987,7 +987,13 @@ int main(void){
     printf("original: " ); print_in_hex(text);
     printf("recuperada: "); print_in_hex(unwrapped);
     printf("cipher_t: "); print_in_hex(cipher_t);
-    
+    printf("strlenC: %d\n", strlen(cipher_t));
+
+    unsigned char tag[400]; unsigned char tag2[400]; memset(tag, 0, 400); memset(tag2, 0, 400);
+    Ketje_GetTag(&instance, tag, 16);
+    Ketje_GetTag(&instance_unwrap, tag2, 16);
+    printf("tag1:\t"); print_in_hex(tag);
+    printf("tag2:\t"); print_in_hex(tag2);
     return 0; 
 }
 

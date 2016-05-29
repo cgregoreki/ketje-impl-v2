@@ -265,6 +265,8 @@ char * string_teste(int i, char * teste){
 }
 
 #define FRAMEBITS00     0x04 //0100 
+#define FRAMEBITS0      0x02
+
 #define FRAMEBITS10     0x05 //0101 
 #define FRAMEBITS01     0x06 //0110 
 #define FRAMEBITS11     0x07 //0111  
@@ -639,6 +641,38 @@ unwrap3(Instance * instance, unsigned char * A, unsigned char * C, unsigned char
 	}
 }
 
+int Ketje_GetTag(Instance *instance, unsigned char *tag, unsigned int tagSizeInBytes)
+{
+    unsigned int tagSizePart;
+    unsigned int i;
+
+    add_Byte(instance->state, FRAMEBITS10, instance->dataRemainderSize);
+    add_Byte(instance->state, 0x08, Ketje_BlockSize);    //padding
+    keccakP200NRounds(instance->state, n_Stride );
+    instance->dataRemainderSize = 0;
+    tagSizePart = Ketje_BlockSize;
+    if ( tagSizeInBytes < Ketje_BlockSize )
+        tagSizePart = tagSizeInBytes;
+    for ( i = 0; i < tagSizePart; ++i )
+        *(tag++) = extract_byte( instance->state, i );
+    tagSizeInBytes -= tagSizePart;
+
+    while(tagSizeInBytes > 0)
+    {
+        Ketje_step( instance->state, 0, FRAMEBITS0 );
+        tagSizePart = Ketje_BlockSize;
+        if ( tagSizeInBytes < Ketje_BlockSize )
+            tagSizePart = tagSizeInBytes;
+        for ( i = 0; i < tagSizePart; ++i )
+            *(tag++) = extract_byte( instance->state, i );
+        tagSizeInBytes -= tagSizePart;
+    }
+
+    instance->phase = Ketje_Phase_FeedingAssociatedData;
+
+    return 0;
+}
+
 
 int main (){ 
 
@@ -661,22 +695,12 @@ int main (){
 
 	unsigned char *associatedData = "Gregoreki";
 
-	int i = 0;
-	char teste[50];
-	for (i = 0; i < 30; i++){
-	    strcpy(teste, string_teste(i, teste));
-	    int dataSizeInBytes = strlen(teste);
-	    int size = ((dataSizeInBytes + (Ketje_BlockSize - 1)) & ~(Ketje_BlockSize - 1)) - Ketje_BlockSize;
-	    //printf("strlen: %d\tsize: %d\t size/Ketje_BlockSize: %d\n", strlen(teste),size, size/Ketje_BlockSize);
-	    strcpy(teste, "");
-	    }
-
 	unsigned char text[400];
     unsigned char *aux = "meu texto";
-    int j= 0;
     strcpy(text, aux);
-    unsigned char cipher_t[400];
-    unsigned char tag[400];
+
+    unsigned char cipher_t[400]; memset(cipher_t, 0, 400);
+    unsigned char tag[400]; unsigned char tag2[400]; memset(tag, 0, 400); memset(tag2, 0, 400);
     unsigned char unwrapped[400];
     memset(unwrapped, 0, 400);
 
@@ -692,6 +716,15 @@ int main (){
 	printf("original: " ); print_in_hex(text);
 	printf("recuperada: "); print_in_hex(unwrapped);
 	printf("cipher_t: "); print_in_hex(cipher_t);
+	printf("strlenC: %d\n", strlen(cipher_t));
+
+	
+	Ketje_GetTag(&ketj, tag, 16);
+	Ketje_GetTag(&ketj_unwrapp, tag2, 16);
+	printf("tag1:\t"); print_in_hex(tag);
+	printf("tag2:\t"); print_in_hex(tag2);
+	
+
     
 }
 	//printf("after associated data: \n");
