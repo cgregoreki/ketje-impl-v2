@@ -34,18 +34,17 @@
 	void extract_bytes(void* state, unsigned char * data, unsigned int offset, unsigned int length);
 	void write_data_to_pointer_on_offset(void *state, unsigned char *data, unsigned int offset, unsigned int length);
 	int return_ketjeJrSize(int len);
+
 //	--- Ketje Functions --- //
-
-
 	void init_keypack(unsigned char * key_p, unsigned char * key);
 	// monkey duplex //
 	void Ketje_step(void *state, int block_size, unsigned char padding);
 	void Ketje_stride(void *state, int size, unsigned char padding);
 	void ketje_monkeyduplex_start(Instance* ketje_inst, unsigned char * key, unsigned char * nonce);
-	void generate_tag(Instance *instance, unsigned char *T, unsigned int tagSizeInBytes);
 	// monkey wrap //
 	void wrap3(Instance * instance, unsigned char * A, unsigned char * B, unsigned char *C);
 	void unwrap3(Instance * instance, unsigned char * A, unsigned char * C, unsigned char * B);
+	void generate_tag(Instance *instance, unsigned char *T, unsigned int tagSizeInBytes);
 
 
 
