@@ -1,12 +1,35 @@
-CC = gcc
-CFLAGS = -g -O2
-OBJECTS = main.o foo.o
+CC        := gcc
+LD        := gcc
 
-main.exe : $(OBJECTS)
-	$(CC) $(CFLAGS) $(OBJECTS) -o main.exe
+MODULES   := keccak ketje
+SRC_DIR   := $(addprefix src/,$(MODULES))
+BUILD_DIR := $(addprefix bin/,$(MODULES))
 
-main.o : main.c
-	$(CC) $(CFLAGS) -c main.c
+SRC       := $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c))
+OBJ       := $(patsubst src/%.c,bin/%.o,$(SRC))
+INCLUDES  := $(addprefix -I,$(SRC_DIR))
 
-foo.o : foo.c
-	$(CC) $(CFLAGS) -c foo.c
+vpath %.c $(SRC_DIR)
+
+define make-goal
+$1/%.o: %.c
+	$(CC) $(INCLUDES) -c $$< -o $$@
+endef
+
+.PHONY: all checkdirs clean
+
+all: checkdirs bin/tiny-ketjeJr
+
+bin/tiny-ketjeJr: $(OBJ)
+	$(LD) $^ -o $@
+
+
+checkdirs: $(BUILD_DIR)
+
+$(BUILD_DIR):
+	@mkdir -p $@
+
+clean:
+	@rm -rf $(BUILD_DIR)
+
+$(foreach bdir,$(BUILD_DIR),$(eval $(call make-goal,$(bdir))))

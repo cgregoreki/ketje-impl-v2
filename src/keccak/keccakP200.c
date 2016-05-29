@@ -1,9 +1,9 @@
 #include "keccakP200.h"
 
-void theta(lane *A)
+void theta(unsigned char *A)
 	{
 	    unsigned int x, y;
-	    lane C[5], D[5];
+	    unsigned char C[5], D[5];
 
 	    for(x=0; x<5; x++) {
 	        C[x] = A[x] ^ A[5 + x] ^ A[10 + x] ^ A[15 + x] ^ A[20 + x];
@@ -16,7 +16,7 @@ void theta(lane *A)
 	            A[index(x, y)] ^= D[x];
 	}
 
-	void rho(lane *A)
+	void rho(unsigned char *A)
 	{
 	    unsigned int x, y;
 
@@ -24,10 +24,10 @@ void theta(lane *A)
 	        A[index(x, y)] = ROL8(A[index(x, y)], KeccakRhoOffsets[index(x, y)]);
 	}
 
-	void pi(lane *A)
+	void pi(unsigned char *A)
 	{
 	    unsigned int x, y;
-	    lane tempA[25];
+	    unsigned char tempA[25];
 
 	    for(x=0; x<5; x++) for(y=0; y<5; y++)
 	        tempA[index(x, y)] = A[index(x, y)];
@@ -35,10 +35,10 @@ void theta(lane *A)
 	        A[index(0*x+1*y, 2*x+3*y)] = tempA[index(x, y)];
 	}
 
-	void chi(lane *A)
+	void chi(unsigned char *A)
 	{
 	    unsigned int x, y;
-	    lane C[5];
+	    unsigned char C[5];
 
 	    for(y=0; y<5; y++) {
 	        for(x=0; x<5; x++)
@@ -48,12 +48,12 @@ void theta(lane *A)
 	    }
 	}
 
-	void iota(lane *A, unsigned int indexRound)
+	void iota(unsigned char *A, unsigned int indexRound)
 	{
 	    A[index(0, 0)] ^= KeccakRoundConstants[indexRound];
 	}
 
-	void Round200(lane* state, unsigned int rnd){
+	void Round200(unsigned char* state, unsigned int rnd){
 		theta(state);
 		rho(state);
 		pi(state);
