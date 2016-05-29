@@ -342,116 +342,114 @@ void put_associatedDataToState(Instance *instance, const unsigned char *data){
         add_Byte( instance->state, *(data++), instance->dataRemainderSize++ );
 }
 
-void put_headers(Instance * instance, unsigned char *A){
-	unsigned int i = 0; unsigned int dataSizeInBytes_A = strlen(A);
-	int nblocks_A = return_ketjeJrSize(dataSizeInBytes_A)/Ketje_BlockSize;
-	unsigned char temp[Ketje_BlockSize];
-	// (linha 6 e 7) begin
-	for (i = 0; i < nblocks_A;i++){
-		temp[0] = *(A++); 	temp[1] = *(A++);
-		add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
-		Ketje_step(instance->state, Ketje_BlockSize, FRAMEBITS00);
-	}
-	int rem = dataSizeInBytes_A - nblocks_A*Ketje_BlockSize;
-	while(rem-- > 0){
-		add_Byte( instance->state, *(A++), instance->dataRemainderSize++ );
-	}
-}
-
-void wrap3(Instance * instance, unsigned char * A, unsigned char * B, unsigned char *C){
-	unsigned int i; unsigned int rem; unsigned char temp[Ketje_BlockSize];
-
-	unsigned char frameAndPaddingBits[1];
-    frameAndPaddingBits[0] = 0x08 | FRAMEBITS11;
-
-    put_headers(instance, A);
-
-	Ketje_step(instance->state, instance->dataRemainderSize, FRAMEBITS01);
-	instance->dataRemainderSize = 0;
-
-	int nblocks_B = return_ketjeJrSize(strlen(B))/Ketje_BlockSize;
-	int dataSizeInBytes_B = strlen(B);
-	for (i = 1; i <= nblocks_B;i++){
-		temp[0] = B[0]; temp[1] = B[1];
-		*(C++) = *(B++) ^ extract_byte(instance->state, 0);
-		*(C++) = *(B++) ^ extract_byte(instance->state, 1);
-		
-		add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
-		add_Bytes(instance->state, frameAndPaddingBits, Ketje_BlockSize, 1);
-		keccakP200NRounds(instance->state, n_Step);
+	void put_headers(Instance * instance, unsigned char *A){
+		unsigned int i = 0; unsigned int dataSizeInBytes_A = strlen(A);
+		int nblocks_A = return_ketjeJrSize(dataSizeInBytes_A)/Ketje_BlockSize;
+		unsigned char temp[Ketje_BlockSize];
+		for (i = 0; i < nblocks_A;i++){
+			temp[0] = *(A++); 	temp[1] = *(A++);
+			add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
+			Ketje_step(instance->state, Ketje_BlockSize, FRAMEBITS00);
+		}
+		int rem = dataSizeInBytes_A - nblocks_A*Ketje_BlockSize;
+		while(rem-- > 0){
+			add_Byte( instance->state, *(A++), instance->dataRemainderSize++ );
+		}
 	}
 
-	rem = dataSizeInBytes_B - nblocks_B*Ketje_BlockSize;
-	while(rem-- > 0){
-		temp[0] = *(B++);
-		*(C++) = temp[0] ^ extract_byte( instance->state, instance->dataRemainderSize);
-		add_Byte(instance->state, temp[0], instance->dataRemainderSize++);
+	void wrap3(Instance * instance, unsigned char * A, unsigned char * B, unsigned char *C){
+		unsigned int i; unsigned int rem; unsigned char temp[Ketje_BlockSize];
+
+		unsigned char frameAndPaddingBits[1];
+	    frameAndPaddingBits[0] = 0x08 | FRAMEBITS11;
+
+	    put_headers(instance, A);
+
+		Ketje_step(instance->state, instance->dataRemainderSize, FRAMEBITS01);
+		instance->dataRemainderSize = 0;
+
+		int dataSizeInBytes_B = strlen(B);
+		int nblocks_B = return_ketjeJrSize(dataSizeInBytes_B)/Ketje_BlockSize;
+		if (nblocks_B > 0){
+			for (i = 1; i <= nblocks_B;i++){
+				temp[0] = B[0]; temp[1] = B[1];
+				*(C++) = *(B++) ^ extract_byte(instance->state, 0);
+				*(C++) = *(B++) ^ extract_byte(instance->state, 1);
+				
+				add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
+				add_Bytes(instance->state, frameAndPaddingBits, Ketje_BlockSize, 1);
+				keccakP200NRounds(instance->state, nstep);
+			}
+		}
+
+		rem = dataSizeInBytes_B - nblocks_B*Ketje_BlockSize;
+		while(rem-- > 0){
+			temp[0] = *(B++);
+			*(C++) = temp[0] ^ extract_byte( instance->state, instance->dataRemainderSize);
+			add_Byte(instance->state, temp[0], instance->dataRemainderSize++);
+		}
 	}
 
-	// inicio da parte para gerar a TAG
-}
+	void unwrap3(Instance * instance, unsigned char * A, unsigned char * C, unsigned char * B){
+		unsigned int i; unsigned int rem; unsigned char temp[Ketje_BlockSize];
+		unsigned char frameAndPaddingBits[1];
+	    frameAndPaddingBits[0] = 0x08 | FRAMEBITS11;
 
-void unwrap3(Instance * instance, unsigned char * A, unsigned char * C, unsigned char *T, unsigned char * B){
-	unsigned int i; unsigned int rem; unsigned char temp[Ketje_BlockSize];
-	unsigned char frameAndPaddingBits[1];
-    frameAndPaddingBits[0] = 0x08 | FRAMEBITS11;
+	    put_headers(instance, A);
 
-    put_headers(instance, A);
+		Ketje_step(instance->state, instance->dataRemainderSize, FRAMEBITS01);
+		instance->dataRemainderSize = 0; 
 
-	Ketje_step(instance->state, instance->dataRemainderSize, FRAMEBITS01);
-	instance->dataRemainderSize = 0; 
+		int dataSizeInBytes_C = strlen(C);
+		int nblocks_C = return_ketjeJrSize(dataSizeInBytes_C)/Ketje_BlockSize;
+		if (nblocks_C > 0){
+			for (i = 0; i < nblocks_C;i++){
 
-	int dataSizeInBytes_C = strlen(C);
-	int nblocks_C = return_ketjeJrSize(dataSizeInBytes_C)/Ketje_BlockSize;
-	printf("before blocks: \n");
-    print_state(instance->state);
-    printf("nblocks_C: %d\n", nblocks_C);
-	for (i = 0; i < nblocks_C;i++){
+				extract_bytes(instance->state, temp, 0, Ketje_BlockSize);
+				temp[0] = *(B++) = *(C++) ^ temp[0];
+				temp[1] = *(B++) = *(C++) ^ temp[1];
+				
+				add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
+				add_Bytes(instance->state, frameAndPaddingBits, Ketje_BlockSize, 1);
+				keccakP200NRounds(instance->state, nstep);
+			}
+		}
 
-		extract_bytes(instance->state, temp, 0, Ketje_BlockSize);
-		temp[0] = *(B++) = *(C++) ^ temp[0];
-		temp[1] = *(B++) = *(C++) ^ temp[1];
-		
-		add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
-		add_Bytes(instance->state, frameAndPaddingBits, Ketje_BlockSize, 1);
-		keccakP200NRounds(instance->state, n_Step);
+		rem = dataSizeInBytes_C - nblocks_C*Ketje_BlockSize;
+		while(rem-- > 0){
+			temp[0] = *(C++) ^ extract_byte( instance->state, instance->dataRemainderSize );
+	        *(B++) = temp[0];
+	        add_Byte(instance->state, temp[0], instance->dataRemainderSize++ );
+		}
 	}
 
-	rem = dataSizeInBytes_C - nblocks_C*Ketje_BlockSize;
-	while(rem-- > 0){
-		temp[0] = *(C++) ^ extract_byte( instance->state, instance->dataRemainderSize );
-        *(B++) = temp[0];
-        add_Byte(instance->state, temp[0], instance->dataRemainderSize++ );
+	int generate_tag(Instance *instance, unsigned char *tag, unsigned int tagSizeInBytes)
+	{
+	    unsigned int tagSizePart;
+	    unsigned int i;
+
+	    Ketje_stride(instance->state, instance->dataRemainderSize, FRAMEBITS10);
+
+	    instance->dataRemainderSize = 0;
+	    tagSizePart = Ketje_BlockSize > tagSizeInBytes ? tagSizeInBytes : Ketje_BlockSize;
+	    
+	    for ( i = 0; i < tagSizePart; ++i )
+	        *(tag++) = extract_byte( instance->state, i );
+	    tagSizeInBytes -= tagSizePart;
+
+	    while(tagSizeInBytes > 0)
+	    {
+	        Ketje_step( instance->state, 0, FRAMEBITS0 );
+	        tagSizePart = Ketje_BlockSize;
+	        if ( tagSizeInBytes < Ketje_BlockSize )
+	            tagSizePart = tagSizeInBytes;
+	        for ( i = 0; i < tagSizePart; ++i )
+	            *(tag++) = extract_byte( instance->state, i );
+	        tagSizeInBytes -= tagSizePart;
+	    }
+
+	    return 0;
 	}
-}
-
-int Ketje_GetTag(Instance *instance, unsigned char *tag, unsigned int tagSizeInBytes)
-{
-    unsigned int tagSizePart;
-    unsigned int i;
-
-    Ketje_stride(instance->state, instance->dataRemainderSize, FRAMEBITS10);
-
-    instance->dataRemainderSize = 0;
-    tagSizePart = Ketje_BlockSize > tagSizeInBytes ? tagSizeInBytes : Ketje_BlockSize;
-    
-    for ( i = 0; i < tagSizePart; ++i )
-        *(tag++) = extract_byte( instance->state, i );
-    tagSizeInBytes -= tagSizePart;
-
-    while(tagSizeInBytes > 0)
-    {
-        Ketje_step( instance->state, 0, FRAMEBITS0 );
-        tagSizePart = Ketje_BlockSize;
-        if ( tagSizeInBytes < Ketje_BlockSize )
-            tagSizePart = tagSizeInBytes;
-        for ( i = 0; i < tagSizePart; ++i )
-            *(tag++) = extract_byte( instance->state, i );
-        tagSizeInBytes -= tagSizePart;
-    }
-
-    return 0;
-}
 
 
 int main (){ 
@@ -487,7 +485,7 @@ int main (){
 	wrap3(&ketj, associatedData, text, cipher_t);
 	printf("after wrap\n");
 	print_state(ketj.state);
-	unwrap3(&ketj_unwrapp, associatedData, cipher_t, tag, unwrapped);
+	unwrap3(&ketj_unwrapp, associatedData, cipher_t, unwrapped);
 
 	printf("after UNWRAP\n");
 	print_state(ketj_unwrapp.state);
@@ -497,22 +495,8 @@ int main (){
 	printf("strlenC: %d\n", strlen(cipher_t));
 
 	
-	Ketje_GetTag(&ketj, tag, 16);
-	Ketje_GetTag(&ketj_unwrapp, tag2, 16);
+	generate_tag(&ketj, tag, 16);
+	generate_tag(&ketj_unwrapp, tag2, 16);
 	printf("tag1:\t"); print_in_hex(tag);
 	printf("tag2:\t"); print_in_hex(tag2);
 }
-	//printf("after associated data: \n");
-
-	//print_state(ketj.state);
-
-    //printf("instance.dataRemainderSize: %d\n", ketj.dataRemainderSize);
-
-    //memset(text, 0, sizeof(cipher_t));
-	
-    //wrap(&ketj, text, cipher_t);
-    //wrap2(&ketj, text, cipher_t);
-    //printf("after wrap:\n");
-    //print_state(ketj.state);
-
-    

@@ -160,16 +160,18 @@
 		Ketje_step(instance->state, instance->dataRemainderSize, FRAMEBITS01);
 		instance->dataRemainderSize = 0;
 
-		int nblocks_B = return_ketjeJrSize(strlen(B))/Ketje_BlockSize;
 		int dataSizeInBytes_B = strlen(B);
-		for (i = 1; i <= nblocks_B;i++){
-			temp[0] = B[0]; temp[1] = B[1];
-			*(C++) = *(B++) ^ extract_byte(instance->state, 0);
-			*(C++) = *(B++) ^ extract_byte(instance->state, 1);
-			
-			add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
-			add_Bytes(instance->state, frameAndPaddingBits, Ketje_BlockSize, 1);
-			keccakP200NRounds(instance->state, nstep);
+		int nblocks_B = return_ketjeJrSize(dataSizeInBytes_B)/Ketje_BlockSize;
+		if (nblocks_B > 0){
+			for (i = 1; i <= nblocks_B;i++){
+				temp[0] = B[0]; temp[1] = B[1];
+				*(C++) = *(B++) ^ extract_byte(instance->state, 0);
+				*(C++) = *(B++) ^ extract_byte(instance->state, 1);
+				
+				add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
+				add_Bytes(instance->state, frameAndPaddingBits, Ketje_BlockSize, 1);
+				keccakP200NRounds(instance->state, nstep);
+			}
 		}
 
 		rem = dataSizeInBytes_B - nblocks_B*Ketje_BlockSize;
@@ -192,18 +194,17 @@
 
 		int dataSizeInBytes_C = strlen(C);
 		int nblocks_C = return_ketjeJrSize(dataSizeInBytes_C)/Ketje_BlockSize;
-		printf("before blocks: \n");
-	    print_state(instance->state);
-	    printf("nblocks_C: %d\n", nblocks_C);
-		for (i = 0; i < nblocks_C;i++){
+		if (nblocks_C > 0){
+			for (i = 0; i < nblocks_C;i++){
 
-			extract_bytes(instance->state, temp, 0, Ketje_BlockSize);
-			temp[0] = *(B++) = *(C++) ^ temp[0];
-			temp[1] = *(B++) = *(C++) ^ temp[1];
-			
-			add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
-			add_Bytes(instance->state, frameAndPaddingBits, Ketje_BlockSize, 1);
-			keccakP200NRounds(instance->state, nstep);
+				extract_bytes(instance->state, temp, 0, Ketje_BlockSize);
+				temp[0] = *(B++) = *(C++) ^ temp[0];
+				temp[1] = *(B++) = *(C++) ^ temp[1];
+				
+				add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
+				add_Bytes(instance->state, frameAndPaddingBits, Ketje_BlockSize, 1);
+				keccakP200NRounds(instance->state, nstep);
+			}
 		}
 
 		rem = dataSizeInBytes_C - nblocks_C*Ketje_BlockSize;
@@ -214,7 +215,7 @@
 		}
 	}
 
-	int generate_tag(Instance *instance, unsigned char *tag, unsigned int tagSizeInBytes)
+	void generate_tag(Instance *instance, unsigned char *T, unsigned int tagSizeInBytes)
 	{
 	    unsigned int tagSizePart;
 	    unsigned int i;
@@ -225,7 +226,7 @@
 	    tagSizePart = Ketje_BlockSize > tagSizeInBytes ? tagSizeInBytes : Ketje_BlockSize;
 	    
 	    for ( i = 0; i < tagSizePart; ++i )
-	        *(tag++) = extract_byte( instance->state, i );
+	        *(T++) = extract_byte( instance->state, i );
 	    tagSizeInBytes -= tagSizePart;
 
 	    while(tagSizeInBytes > 0)
@@ -235,11 +236,9 @@
 	        if ( tagSizeInBytes < Ketje_BlockSize )
 	            tagSizePart = tagSizeInBytes;
 	        for ( i = 0; i < tagSizePart; ++i )
-	            *(tag++) = extract_byte( instance->state, i );
+	            *(T++) = extract_byte( instance->state, i );
 	        tagSizeInBytes -= tagSizePart;
 	    }
-
-	    return 0;
 	}
 
 

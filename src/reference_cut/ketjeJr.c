@@ -484,8 +484,6 @@ int Ketje_WrapPlaintext(Ketje_Instance *instance, const unsigned char *plaintext
     if ( (instance->phase & Ketje_Phase_FeedingAssociatedData) != 0)
     {
         Ket_Step( instance->state, instance->dataRemainderSize, FRAMEBITS01 );
-        //printf("after first step\n");
-        //print_state(instance->state);
         instance->dataRemainderSize = 0;
         instance->phase = Ketje_Phase_Wrapping;
     }

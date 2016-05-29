@@ -42,6 +42,7 @@
 	void Ketje_step(void *state, int block_size, unsigned char padding);
 	void Ketje_stride(void *state, int size, unsigned char padding);
 	void ketje_monkeyduplex_start(Instance* ketje_inst, unsigned char * key, unsigned char * nonce);
+	void generate_tag(Instance *instance, unsigned char *T, unsigned int tagSizeInBytes);
 	// monkey wrap //
 	void wrap3(Instance * instance, unsigned char * A, unsigned char * B, unsigned char *C);
 	void unwrap3(Instance * instance, unsigned char * A, unsigned char * C, unsigned char * B);
