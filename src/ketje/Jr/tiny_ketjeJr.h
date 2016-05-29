@@ -6,9 +6,14 @@
 	#define nstart 12
 	#define nstep 1
 	#define nstride 6
-	#define Ketje_BlockSize (2)
+	#define Ketje_BlockSize 2
+	#define nrLanes 25
+	#define maxNrRounds 18
 
+	// for keccakp200
+	#define state_width 200
 
+	#define FRAMEBITS0     	0x02 //0100 
 	#define FRAMEBITS00     0x04 //0100 
 	#define FRAMEBITS10     0x05 //0101 
 	#define FRAMEBITS01     0x06 //0110 
@@ -16,7 +21,7 @@
 
 // 	--- definition of the Ketje Instance --- //
 	typedef struct {
-	    unsigned char state[KeccakF_stateSizeInBytes];
+	    unsigned char state[25];
 	    unsigned int dataRemainderSize;
 	} Instance;
 
@@ -35,10 +40,11 @@
 	void init_keypack(unsigned char * key_p, unsigned char * key);
 	// monkey duplex //
 	void Ketje_step(void *state, int block_size, unsigned char padding);
+	void Ketje_stride(void *state, int size, unsigned char padding);
 	void ketje_monkeyduplex_start(Instance* ketje_inst, unsigned char * key, unsigned char * nonce);
 	// monkey wrap //
 	void wrap3(Instance * instance, unsigned char * A, unsigned char * B, unsigned char *C);
-	void unwrap3(Instance * instance, unsigned char * A, unsigned char * C, unsigned char *T, unsigned char * B);
+	void unwrap3(Instance * instance, unsigned char * A, unsigned char * C, unsigned char * B);
 
 
 
