@@ -818,11 +818,11 @@ void my_test(){
     char* key = "0925vm97u3904mv357";
     char* nonce = "526bh465gf345";
 
-    unsigned char associatedData[400];
-    unsigned char plaintext[400];
-    unsigned char ciphertext[400];
-    unsigned char plaintextPrime[400];
-    unsigned char tag1[16], tag2[16];
+    unsigned char associatedData[400]; memset(associatedData, 0 , 400);
+    unsigned char plaintext[400]; memset(plaintext, 0 , 400);
+    unsigned char ciphertext[400]; memset(ciphertext, 0 , 400);
+    unsigned char plaintextPrime[400]; memset(plaintextPrime, 0 , 400);
+    unsigned char tag1[16], tag2[16]; memset(tag1, 0 , 16); memset(tag2, 0 , 16);
 
     plaintext[0] = 'A';
     plaintext[1] = '\0';
@@ -971,7 +971,7 @@ int main(void){
     unsigned char *text = "meu texto";
     
     unsigned char cipher_t[400];
-    //memset(text, 0, sizeof(cipher_t));
+    memset(cipher_t, 0, sizeof(cipher_t));
 
     Ketje_WrapPlaintext(&instance, text, cipher_t, strlen(text));
     printf("after wrap:\n");

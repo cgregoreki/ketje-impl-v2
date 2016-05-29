@@ -704,8 +704,6 @@ int main (){
     unsigned char unwrapped[400];
     memset(unwrapped, 0, 400);
 
-
-
 	wrap3(&ketj, associatedData, text, cipher_t);
 	printf("after wrap\n");
 	print_state(ketj.state);
