@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <string.h>
 #define maxKeyBytes 400
-	#define nstart 12
-	#define nstep 1
-	#define nstride 6
-	#define Ketje_BlockSize 4
-	#define nrLanes 25
+#define nstart 12
+#define nstep 1
+#define nstride 6
+#define Ketje_BlockSize 4
+#define nrLanes 25
 	
 #define FRAMEBITS0     	0x02 //0010 
 #define FRAMEBITS00     0x04 //0100 
