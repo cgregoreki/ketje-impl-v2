@@ -992,6 +992,9 @@ int main(void){
     Ketje_GetTag(&instance_unwrap, tag2, 16);
     printf("tag1:\t"); print_in_hex(tag);
     printf("tag2:\t"); print_in_hex(tag2);
+
+    printf_round_constants();
+    printf_rho_offsets();
     return 0; 
 }
 

@@ -1,13 +1,52 @@
 #include <stdio.h>
 #include <string.h>
-#include "tiny_ketjeJr.h"
+#define maxKeyBytes 400
+	#define nstart 12
+	#define nstep 1
+	#define nstride 6
+	#define Ketje_BlockSize 4
+	#define nrLanes 25
+	
+#define FRAMEBITS0     	0x02 //0010 
+#define FRAMEBITS00     0x04 //0100 
+#define FRAMEBITS10     0x05 //0101 
+#define FRAMEBITS01     0x06 //0110 
+#define FRAMEBITS11     0x07 //0111  
+
+
+
+	#define KeccakF_stateSizeInBytes 50
+	#define maxNumberOfRounds 20
+	#define nrLanes 25
+	#define state_width	400
+
+	#define maxNrRounds 20
+	unsigned short KeccakRoundConstants[maxNrRounds] = 
+	{
+		0x0001, 0x8082, 0x808a, 0x8000, 0x808b, 0x0001, 0x8081, 0x8009, 0x008a, 0x0088, 0x8009, 0x000a, 0x808b, 0x008b, 0x8089, 0x8003, 0x8002, 0x0080, 0x800a, 0x000a 
+	};
+
+	unsigned int KeccakRhoOffsets[nrLanes] = {
+		0, 1, 14, 12, 11, 4, 12, 6, 7, 4, 3, 10, 11, 9, 7, 9, 13, 15, 5, 8, 2, 2, 13, 8, 14	
+	};
+
+
+// 	--- definition of the Ketje Instance --- //
+	typedef struct {
+	    unsigned char state[50];
+	    unsigned int dataRemainderSize;
+	} Instance;
 
 // ----- Parte de funcoes auxiliares ----- //
 
 
+// 	--- auxiliar functions --- //
+	#define index(x, y) (((x)%5)+5*((y)%5))
+	#define ROL16(a, offset) ((offset != 0) ? ((((unsigned short)a) << offset) ^ (((unsigned short)a) >> (sizeof(unsigned short)*8-offset))) : a)
+
 	void initialize_mem_state(void *state)
 	{
-	    memset(state, 0, nrLanes * sizeof(unsigned char));
+	    memset(state, 0, nrLanes * sizeof(unsigned char) * 2);
 	}
 
 	void print_state(unsigned char* state){
@@ -31,6 +70,76 @@
 	    ((unsigned char *)state)[offset] ^= byte;
 	}
 
+
+void theta(unsigned short *A)
+{
+    unsigned int x, y;
+    unsigned short C[5], D[5];
+
+    for(x=0; x<5; x++) {
+        C[x] = 0;
+        for(y=0; y<5; y++)
+            C[x] ^= A[index(x, y)];
+    }
+    for(x=0; x<5; x++)
+        D[x] = ROL16(C[(x+1)%5], 1) ^ C[(x+4)%5];
+    for(x=0; x<5; x++)
+        for(y=0; y<5; y++)
+            A[index(x, y)] ^= D[x];
+}
+
+	 void rho(unsigned short *A)
+{
+    unsigned int x, y;
+
+    for(x=0; x<5; x++) for(y=0; y<5; y++)
+        A[index(x, y)] = ROL16(A[index(x, y)], KeccakRhoOffsets[index(x, y)]);
+}
+	void pi(unsigned short *A)
+{
+    unsigned int x, y;
+    unsigned short tempA[25];
+
+    for(x=0; x<5; x++) for(y=0; y<5; y++)
+        tempA[index(x, y)] = A[index(x, y)];
+    for(x=0; x<5; x++) for(y=0; y<5; y++)
+        A[index(0*x+1*y, 2*x+3*y)] = tempA[index(x, y)];
+}
+
+	void chi(unsigned short *A)
+{
+    unsigned int x, y;
+    unsigned short C[5];
+
+    for(y=0; y<5; y++) {
+        for(x=0; x<5; x++)
+            C[x] = A[index(x, y)] ^ ((~A[index(x+1, y)]) & A[index(x+2, y)]);
+        for(x=0; x<5; x++)
+            A[index(x, y)] = C[x];
+    }
+}
+
+	void iota(unsigned short *A, unsigned int indexRound)
+{
+    A[index(0, 0)] ^= KeccakRoundConstants[indexRound];
+}
+
+
+	void Round400(unsigned short* state, unsigned int rnd){
+		theta(state);
+		rho(state);
+		pi(state);
+		chi(state);
+		iota(state, rnd);
+	}
+
+	void keccakP400NRounds(void* state, int rounds){
+		int i = 0;
+		for(i=(maxNrRounds-rounds); i<maxNrRounds; i++){
+			Round400(state, i);
+		}
+	}
+
 	// ----- 		FIM 			----- //
 
 // --- Parte de funçoes auxiliares ----//
@@ -49,16 +158,6 @@
 	void write_data_to_pointer_on_offset(void *state, unsigned char *data, unsigned int offset, unsigned int length)
 	{
 	    memcpy((unsigned char*)state+offset, data, length);
-	}
-
-	/* 	para KetjeJr, é necessário obter um tamanho correto para adicionar
-  	bytes de associatedData por blocos. Essa função é diferente para KetjeSr. */
-	int return_ketjeJrSize(int len){
-		if (len % 2 == 0){
-			return len - 2;
-		} else {
-			return len - 1;
-		}
 	}
 
 
@@ -92,14 +191,14 @@
 		// executa o round do keccak n_Step vezes.
 		int i = 0;
 		for(i=(maxNrRounds-nstep); i<maxNrRounds; i++){
-			Round200(state, i);
+			Round400(state, i);
 		}
 	}
 
 	void Ketje_stride(void *state, int size, unsigned char padding){
 		add_Byte(state, padding, size);
 	    add_Byte(state, 0x08, Ketje_BlockSize);    //padding
-	    keccakP200NRounds(state, nstride );
+	    keccakP400NRounds(state, nstride );
 	}
 
 	void ketje_monkeyduplex_start(Instance* ketje_inst, unsigned char * key, unsigned char * nonce){
@@ -129,17 +228,17 @@
 		//agora colocamos o padding final do estado.
 		write_data_to_pointer_on_offset(ketje_inst->state, &pad_final, state_width/8 -1, 1);
 
-		//agora chama a funcao esponja (keccakP200) nstart vezes.
+		//agora chama a funcao esponja (keccakP400) nstart vezes.
 		for(count = (maxNrRounds - nstart); count < maxNrRounds; count++)
-			Round200(ketje_inst->state, count);		
+			Round400(ketje_inst->state, count);		
 	}
 
 	void put_headers(Instance * instance, unsigned char *A){
 		unsigned int i = 0; unsigned int dataSizeInBytes_A = strlen(A);
-		int nblocks_A = return_ketjeJrSize(dataSizeInBytes_A)/Ketje_BlockSize;
+		int nblocks_A = (((dataSizeInBytes_A + (Ketje_BlockSize - 1)) & ~(Ketje_BlockSize - 1)) - Ketje_BlockSize)/Ketje_BlockSize;
 		unsigned char temp[Ketje_BlockSize];
 		for (i = 0; i < nblocks_A;i++){
-			temp[0] = *(A++); 	temp[1] = *(A++);
+			temp[0] = *(A++); temp[1] = *(A++); temp[2] = *(A++); temp[3] = *(A++);
 			add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
 			Ketje_step(instance->state, Ketje_BlockSize, FRAMEBITS00);
 		}
@@ -157,20 +256,29 @@
 
 	    put_headers(instance, A);
 
+	    printf("after associated data:\n");
+	    print_state(instance->state);
+
 		Ketje_step(instance->state, instance->dataRemainderSize, FRAMEBITS01);
 		instance->dataRemainderSize = 0;
 
 		int dataSizeInBytes_B = strlen(B);
-		int nblocks_B = return_ketjeJrSize(dataSizeInBytes_B)/Ketje_BlockSize;
+		int nblocks_B = (((dataSizeInBytes_B + (Ketje_BlockSize - 1)) & ~(Ketje_BlockSize - 1)) - Ketje_BlockSize)/Ketje_BlockSize;
+		printf("blocks wrap: %d\n", nblocks_B);
+		printf("blocks...\n");
 		if (nblocks_B > 0){
-			for (i = 1; i <= nblocks_B;i++){
-				temp[0] = B[0]; temp[1] = B[1];
+			for (i = 0; i < nblocks_B;i++){
+				temp[0] = B[0]; temp[1] = B[1]; temp[2] = B[2]; temp[3] = B[3];
 				*(C++) = *(B++) ^ extract_byte(instance->state, 0);
 				*(C++) = *(B++) ^ extract_byte(instance->state, 1);
+				*(C++) = *(B++) ^ extract_byte(instance->state, 2);
+				*(C++) = *(B++) ^ extract_byte(instance->state, 3);
 				
 				add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
 				add_Bytes(instance->state, frameAndPaddingBits, Ketje_BlockSize, 1);
-				keccakP200NRounds(instance->state, nstep);
+				keccakP400NRounds(instance->state, nstep);
+
+				print_state(instance->state);
 			}
 		}
 
@@ -188,22 +296,31 @@
 	    frameAndPaddingBits[0] = 0x08 | FRAMEBITS11;
 
 	    put_headers(instance, A);
+	    printf("after associated data unwrap:\n");
+	    print_state(instance->state);
+
 
 		Ketje_step(instance->state, instance->dataRemainderSize, FRAMEBITS01);
 		instance->dataRemainderSize = 0; 
 
 		int dataSizeInBytes_C = strlen(C);
-		int nblocks_C = return_ketjeJrSize(dataSizeInBytes_C)/Ketje_BlockSize;
+		int nblocks_C = (((dataSizeInBytes_C + (Ketje_BlockSize - 1)) & ~(Ketje_BlockSize - 1)) - Ketje_BlockSize)/Ketje_BlockSize;
+		printf("blocks unwrap: %d\n", nblocks_C);
+		printf("blocks...\n");
 		if (nblocks_C > 0){
 			for (i = 0; i < nblocks_C;i++){
 
 				extract_bytes(instance->state, temp, 0, Ketje_BlockSize);
 				temp[0] = *(B++) = *(C++) ^ temp[0];
 				temp[1] = *(B++) = *(C++) ^ temp[1];
+				temp[2] = *(B++) = *(C++) ^ temp[2];
+				temp[3] = *(B++) = *(C++) ^ temp[3];
 				
 				add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
 				add_Bytes(instance->state, frameAndPaddingBits, Ketje_BlockSize, 1);
-				keccakP200NRounds(instance->state, nstep);
+				keccakP400NRounds(instance->state, nstep);
+
+				print_state(instance->state);
 			}
 		}
 
@@ -241,7 +358,76 @@
 	    }
 	}
 
+	void print_in_hex(unsigned char* t){
+	    int i =0;
+
+	    for (i = 0; i < strlen(t); i++){
+	        printf("%x ", t[i]);
+	    }    
+	    printf("\n");
+	}
+
 int main (){ 
+
+
+	unsigned char key[400], nonce[400];
+	unsigned char * key_aux = "83nv4eh";
+	unsigned char * nonce_aux = "90m546brj";
+
+	memset(key, 0, 400);
+	memset(nonce, 0, 400);
+
+	strcpy(key, key_aux);
+	strcpy(nonce, nonce_aux);
+
+	int keySizeInBits, nonceSizeInBits;
+    int associatedDataSize = 0;
+    int keyMaxSizeInBits = 400 - 18;
+
+    unsigned char *associatedData = "Gregoreki";
+
+    Instance instance;
+    Instance instance_unwrap;
+    
+    keySizeInBits = strlen(key)*8;
+    nonceSizeInBits = strlen(nonce)*8;
+
+    ketje_monkeyduplex_start(&instance, key, nonce );
+    ketje_monkeyduplex_start(&instance_unwrap, key, nonce);
+
+    printf("after initialize: \n");
+    print_state(instance.state);
+    //Ketje_FeedAssociatedData(&instance, associatedData, strlen(associatedData) );
+    //Ketje_FeedAssociatedData(&instance_unwrap, associatedData, strlen(associatedData) );
+    //printf("after associated data: \n");
+    //print_state(instance.state);
+
+    unsigned char *text = "meu texto";
+    
+    unsigned char cipher_t[400];
+    memset(cipher_t, 0, sizeof(cipher_t));
+
+    wrap3(&instance, associatedData, text, cipher_t);
+    printf("after wrap:\n");
+    print_state(instance.state);
+
+    unsigned char unwrapped[400];
+    memset(unwrapped, 0, 400);
+    unwrap3(&instance_unwrap, associatedData, cipher_t, unwrapped);
+    printf("after unwrap:\n");
+    print_state(instance_unwrap.state);
+    printf("cipher_t: \t"); print_in_hex(cipher_t);
+
+    printf("original: " ); print_in_hex(text);
+    printf("recuperada: "); print_in_hex(unwrapped);
+    printf("cipher_t: "); print_in_hex(cipher_t);
+    printf("strlenC: %d\n", strlen(cipher_t));
+
+    unsigned char tag[400]; unsigned char tag2[400]; memset(tag, 0, 400); memset(tag2, 0, 400);
+    generate_tag(&instance, tag, 16);
+    generate_tag(&instance_unwrap, tag2, 16);
+    printf("tag1:\t"); print_in_hex(tag);
+    printf("tag2:\t"); print_in_hex(tag2);
 
 	return (0);
 }

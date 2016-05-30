@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <string.h>
-#include "tiny_ketjeJr.h"
+#include "tiny_ketjeSr.h"
 
 // ----- Parte de funcoes auxiliares ----- //
 
 
 	void initialize_mem_state(void *state)
 	{
-	    memset(state, 0, nrLanes * sizeof(unsigned char));
+	    memset(state, 0, nrLanes * sizeof(unsigned short) * 2);
 	}
 
 	void print_state(unsigned char* state){
@@ -49,16 +49,6 @@
 	void write_data_to_pointer_on_offset(void *state, unsigned char *data, unsigned int offset, unsigned int length)
 	{
 	    memcpy((unsigned char*)state+offset, data, length);
-	}
-
-	/* 	para KetjeJr, é necessário obter um tamanho correto para adicionar
-  	bytes de associatedData por blocos. Essa função é diferente para KetjeSr. */
-	int return_ketjeJrSize(int len){
-		if (len % 2 == 0){
-			return len - 2;
-		} else {
-			return len - 1;
-		}
 	}
 
 
@@ -136,10 +126,10 @@
 
 	void put_headers(Instance * instance, unsigned char *A){
 		unsigned int i = 0; unsigned int dataSizeInBytes_A = strlen(A);
-		int nblocks_A = return_ketjeJrSize(dataSizeInBytes_A)/Ketje_BlockSize;
+		int nblocks_A = (((dataSizeInBytes_A + (Ketje_BlockSize - 1)) & ~(Ketje_BlockSize - 1)) - Ketje_BlockSize)/Ketje_BlockSize;
 		unsigned char temp[Ketje_BlockSize];
 		for (i = 0; i < nblocks_A;i++){
-			temp[0] = *(A++); 	temp[1] = *(A++);
+			temp[0] = *(A++); 	temp[1] = *(A++); temp[2] = *(A++); temp[3] = *(A++);
 			add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
 			Ketje_step(instance->state, Ketje_BlockSize, FRAMEBITS00);
 		}
@@ -161,12 +151,14 @@
 		instance->dataRemainderSize = 0;
 
 		int dataSizeInBytes_B = strlen(B);
-		int nblocks_B = return_ketjeJrSize(dataSizeInBytes_B)/Ketje_BlockSize;
+		int nblocks_B = (((dataSizeInBytes_B + (Ketje_BlockSize - 1)) & ~(Ketje_BlockSize - 1)) - Ketje_BlockSize)/Ketje_BlockSize;
 		if (nblocks_B > 0){
 			for (i = 1; i <= nblocks_B;i++){
 				temp[0] = B[0]; temp[1] = B[1];
 				*(C++) = *(B++) ^ extract_byte(instance->state, 0);
 				*(C++) = *(B++) ^ extract_byte(instance->state, 1);
+				*(C++) = *(B++) ^ extract_byte(instance->state, 2);
+				*(C++) = *(B++) ^ extract_byte(instance->state, 3);
 				
 				add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
 				add_Bytes(instance->state, frameAndPaddingBits, Ketje_BlockSize, 1);
@@ -193,13 +185,15 @@
 		instance->dataRemainderSize = 0; 
 
 		int dataSizeInBytes_C = strlen(C);
-		int nblocks_C = return_ketjeJrSize(dataSizeInBytes_C)/Ketje_BlockSize;
+		int nblocks_C = (((dataSizeInBytes_C + (Ketje_BlockSize - 1)) & ~(Ketje_BlockSize - 1)) - Ketje_BlockSize)/Ketje_BlockSize;
 		if (nblocks_C > 0){
 			for (i = 0; i < nblocks_C;i++){
 
 				extract_bytes(instance->state, temp, 0, Ketje_BlockSize);
 				temp[0] = *(B++) = *(C++) ^ temp[0];
 				temp[1] = *(B++) = *(C++) ^ temp[1];
+				temp[2] = *(B++) = *(C++) ^ temp[2];
+				temp[3] = *(B++) = *(C++) ^ temp[3];
 				
 				add_Bytes(instance->state, temp, 0, Ketje_BlockSize);
 				add_Bytes(instance->state, frameAndPaddingBits, Ketje_BlockSize, 1);

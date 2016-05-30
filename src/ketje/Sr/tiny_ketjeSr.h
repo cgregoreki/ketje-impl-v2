@@ -6,12 +6,12 @@
 	#define nstart 12
 	#define nstep 1
 	#define nstride 6
-	#define Ketje_BlockSize 2
+	#define Ketje_BlockSize 4
 	#define nrLanes 25
-	#define maxNrRounds 18
+	#define maxNrRounds 20
 
 	// for keccakp200
-	#define state_width 200
+	#define state_width 400
 
 	#define FRAMEBITS0     	0x02 //0010 
 	#define FRAMEBITS00     0x04 //0100 
@@ -21,7 +21,7 @@
 
 // 	--- definition of the Ketje Instance --- //
 	typedef struct {
-	    unsigned char state[25];
+	    unsigned char state[50];
 	    unsigned int dataRemainderSize;
 	} Instance;
 
@@ -33,7 +33,6 @@
 	unsigned char extract_byte(void *state, unsigned int offset);
 	void extract_bytes(void* state, unsigned char * data, unsigned int offset, unsigned int length);
 	void write_data_to_pointer_on_offset(void *state, unsigned char *data, unsigned int offset, unsigned int length);
-	int return_ketjeJrSize(int len);
 
 //	--- Ketje Functions --- //
 	void init_keypack(unsigned char * key_p, unsigned char * key);
