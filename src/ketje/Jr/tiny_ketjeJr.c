@@ -4,21 +4,6 @@
 
 // ----- Parte de funcoes auxiliares ----- //
 
-
-	void initialize_mem_state(void *state)
-	{
-	    memset(state, 0, nrLanes * sizeof(unsigned char));
-	}
-
-	void print_state(unsigned char* state){
-	    int i =0;
-	    for (i = 0; i < nrLanes; i++){
-	        printf("%x ", state[i]);
-	    }    
-	    printf("\n");
-	}
-
-	// addBytes não é overwrite. É soma através de um XOR.
 	void add_Bytes(void *state, const unsigned char *data, unsigned int offset, unsigned int length)
 	{
 	    unsigned int i;	    
@@ -31,11 +16,6 @@
 	    ((unsigned char *)state)[offset] ^= byte;
 	}
 
-	// ----- 		FIM 			----- //
-
-// --- Parte de funçoes auxiliares ----//
-
-
 	unsigned char extract_byte(void *state, unsigned int offset){
 		unsigned char data[1];
 		memcpy(data, (unsigned char*)state+offset, 1);
@@ -46,10 +26,6 @@
 		memcpy(data, (unsigned char*)state+offset, length);
 	}
 
-	void write_data_to_pointer_on_offset(void *state, unsigned char *data, unsigned int offset, unsigned int length)
-	{
-	    memcpy((unsigned char*)state+offset, data, length);
-	}
 
 	/* 	para KetjeJr, é necessário obter um tamanho correto para adicionar
   	bytes de associatedData por blocos. Essa função é diferente para KetjeSr. */
@@ -76,11 +52,11 @@
 		key_p[0] = keypack_sizeInBytes;
 
 		// copia a chave para key_pack;
-		write_data_to_pointer_on_offset(key_p, key, 1, (strlen(key)));
+		memcpy((unsigned char*)key_p+1, key, strlen(key));
 
 		/* 	admitimos que as chaves sao sempre multiplas de 8
 			bits, portanto, admite apenas um byte de paddding.*/
-		write_data_to_pointer_on_offset(key_p, &pad, 1 + (strlen(key)), 1);
+		memcpy((unsigned char*)key_p+(1+strlen(key)), &pad, 1);
 	}
 
 	void Ketje_step(void *state, int block_size, unsigned char padding){
@@ -115,19 +91,22 @@
 
 		ketje_inst->dataRemainderSize = 0;
 
-		initialize_mem_state(ketje_inst->state);
+		// inicializamos o estado com zeros.
+		memset(ketje_inst->state, 0, nrLanes * sizeof(unsigned char));
+
 		init_keypack(key_pack, key);
 
 		// escrevemos keypack no estado
-		write_data_to_pointer_on_offset(ketje_inst->state, key_pack,0,strlen(key_pack));
+		memcpy((unsigned char*)ketje_inst->state, key_pack, strlen(key_pack));
 
 		// escrevemos o nonce no estado
-		write_data_to_pointer_on_offset(ketje_inst->state, nonce, strlen(key_pack), strlen(nonce));
+		memcpy((unsigned char*)ketje_inst->state + strlen(key_pack), nonce, strlen(nonce));
+
 		// colocamos o padding de nonce no final de nonce
-		write_data_to_pointer_on_offset(ketje_inst->state, &pad, strlen(key_pack) + strlen(nonce), 1);
+		memcpy((unsigned char*)ketje_inst->state + strlen(key_pack) + strlen(nonce), &pad, 1);
 
 		//agora colocamos o padding final do estado.
-		write_data_to_pointer_on_offset(ketje_inst->state, &pad_final, state_width/8 -1, 1);
+		memcpy((unsigned char*)ketje_inst->state + state_width/8 -1, &pad_final, 1);
 
 		//agora chama a funcao esponja (keccakP200) nstart vezes.
 		for(count = (maxNrRounds - nstart); count < maxNrRounds; count++)
@@ -240,8 +219,3 @@
 	        tagSizeInBytes -= tagSizePart;
 	    }
 	}
-
-int main (){ 
-
-	return (0);
-}

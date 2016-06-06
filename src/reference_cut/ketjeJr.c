@@ -808,59 +808,6 @@ void test_ketje( const char *file, const unsigned char *expected )
 
 }
 
-void my_test(){
-     int keySizeInBits, nonceSizeInBits;
-    int associatedDataSize = 0;
-    int keyMaxSizeInBits = SnP_width - 18;
-
-    char* key = "0925vm97u3904mv357";
-    char* nonce = "526bh465gf345";
-
-    unsigned char associatedData[400]; memset(associatedData, 0 , 400);
-    unsigned char plaintext[400]; memset(plaintext, 0 , 400);
-    unsigned char ciphertext[400]; memset(ciphertext, 0 , 400);
-    unsigned char plaintextPrime[400]; memset(plaintextPrime, 0 , 400);
-    unsigned char tag1[16], tag2[16]; memset(tag1, 0 , 16); memset(tag2, 0 , 16);
-
-    plaintext[0] = 'A';
-    plaintext[1] = '\0';
-    Ketje_Instance instance;
-    
-    keySizeInBits = strlen(key)*8;
-    nonceSizeInBits = strlen(nonce)*8;
-    associatedDataSize = strlen(associatedData);
-
-    Ketje_Initialize(&instance, key, keySizeInBits,0,0);
-    if ( (keySizeInBits % 8) != 0)
-    {
-        key[keySizeInBits / 8] &= (1 << (keySizeInBits % 8)) - 1;
-    }
-    if ( (nonceSizeInBits % 8) != 0)
-    {
-        nonce[nonceSizeInBits / 8] &= (1 << (nonceSizeInBits % 8)) - 1;
-    }
-
-    #ifdef OUTPUT
-            printf("***\n");
-            printf("initialize with key of %u bits, nonce of %u bits:\n", keySizeInBits, nonceSizeInBits );
-            displayByteString(stdout, "key", key, (keySizeInBits+7)/8);
-            displayByteString(stdout, "nonce", nonce, (nonceSizeInBits+7)/8);
-            printf("\n");
-    #endif
-    int dataSizeInBytes = strlen(plaintext);
-    Ketje_WrapPlaintext(&instance, plaintext, ciphertext, dataSizeInBytes);
-    dataSizeInBytes = strlen(ciphertext);
-    Ketje_UnwrapCiphertext(&instance, ciphertext, plaintextPrime, dataSizeInBytes);
-
-    Ketje_GetTag(&instance, tag1, 16);
-
-    displayByteString(stdout, "associated data", associatedData, strlen(associatedData));
-    displayByteString(stdout, "plaintext", plaintext, strlen(plaintext));
-    displayByteString(stdout, "ciphertext", ciphertext, strlen(ciphertext));
-    displayByteString(stdout, "tag", tag1, 16);
-
-}
-
 void print_state(tKeccakLane* state){
     int i =0;
     for (i = 0; i < nrLanes; i++){
@@ -896,45 +843,6 @@ void print_instance_details(Ketje_Instance* instance){
 int main(void){
 
     //test_ketje("KetjeJr.txt", "\x3b\x7d\xea\x9d\xf3\xe0\x58\x06\x98\x92\xc3\xc0\x05\x0f\x4b\xfd");
-
-    //KeccakP200_StaticInitialize();
-    //tKeccakLane state[KeccakF_stateSizeInBytes];
-    
-/*
-    //my_test();
-    //printf_rho_offsets();
-    //printf_round_constants();
-*/
-
-    /*  
-    KeccakP200_Initialize(state);
-    test_instance_initialize(state);
-    
-    printf("Init: \n");
-    print_state(state);
-
-    theta(state);
-    printf("After theta: \n");
-    print_state(state);
-
-    rho(state);
-    printf("After rho: \n");
-    print_state(state);
-
-    pi(state);
-    printf("After pi: \n");
-    print_state(state);
-
-    chi(state);
-    printf("After chi: \n");
-    print_state(state);
-
-    iota(state, 3);
-    printf("After iota: \n");
-    print_state(state);
-    */
-
-
     
     int keySizeInBits, nonceSizeInBits;
     int associatedDataSize = 0;

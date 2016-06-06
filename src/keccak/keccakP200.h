@@ -8,12 +8,12 @@
 	#define state_width	200
 
 	#define maxNrRounds 18
-	unsigned char KeccakRoundConstants[maxNrRounds] = 
+	static unsigned char KeccakRoundConstants[maxNrRounds] = 
 	{
 		0x01, 0x82, 0x8a, 0x00, 0x8b, 0x01, 0x81, 0x09, 0x8a, 0x88, 0x09, 0x0a, 0x8b, 0x8b, 0x89, 0x03, 0x02, 0x80
 	};
 
-	unsigned int KeccakRhoOffsets[nrLanes] = {
+	static unsigned int KeccakRhoOffsets[nrLanes] = {
 		0, 1, 6, 4, 3, 4, 4, 6, 7, 4, 3, 2, 3, 1, 7, 1, 5, 7, 5, 0, 2, 2, 5, 0, 6 
 	};
 
