@@ -1,9 +1,9 @@
 #include <stdio.h>
-#include "tiny_ketjeJr.h"
-#include "../../keccak/keccakP200.h"
+#include "tiny_ketjeSr.h"
+#include "../../keccak/keccakP400.h"
 
 #define OUTPUT
-#define SnP_width 200
+#define SnP_width 400
 
 
 void print_state(unsigned char* state){
@@ -209,8 +209,6 @@ void getAB(char * associatedData, char * dataBody, int i ){
         "weer",
         "goutiness"
     };
-
-    //memcpy(associatedData, As[i], strlen(As[i])); *dataBody = Bs[i];
     strcpy(associatedData, As[i]); strcpy(dataBody, Bs[i]);
 }
 
@@ -231,6 +229,7 @@ int meu_teste(){
         getKeyAndNonce(key, nonce, i);
         ketje_monkeyduplex_start(&ketje1, key, nonce);
         ketje_monkeyduplex_start(&ketje2, key, nonce);
+
         
 
 #ifdef OUTPUT
@@ -246,6 +245,8 @@ int meu_teste(){
             memset(&ketje2, 0, sizeof(Instance));
             ketje_monkeyduplex_start(&ketje1, key, nonce);
             ketje_monkeyduplex_start(&ketje2, key, nonce);    
+
+            //printf("after start:\n"); print_state(ketje1.state);  
 
             unsigned char A[400], B[400], C[400], B2[400], T1[17], T2[17];
             memset(A, 0, 400); memset(B, 0, 400); memset(C, 0, 400); memset(B2, 0, 400);
@@ -286,7 +287,7 @@ int meu_teste(){
 }
 
 void teste_particular(){
-    int i = 13; int j = 0;
+    int i = 32; int j = 32;
     Instance ketje1, ketje2;
     unsigned char key[50], nonce[50];
     memset(key, 0, 50); memset(nonce, 0, 50);
@@ -322,6 +323,6 @@ void teste_particular(){
 int main (){ 
 
     meu_teste();
-    teste_particular();
+    //teste_particular();
 	
 }

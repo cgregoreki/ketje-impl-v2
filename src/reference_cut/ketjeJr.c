@@ -232,25 +232,6 @@ void iota(tKeccakLane *A, unsigned int indexRound)
 
 void KeccakP200Round(tKeccakLane *state, unsigned int indexRound)
 {
-    /*
-    printf("before theta: \n");
-    print_state(state);
-    theta(state);
-    printf("after theta: \n");
-    print_state(state);
-    rho(state);
-    printf("after rho: \n");
-    print_state(state);
-    pi(state);
-    printf("after pi: \n");
-    print_state(state);
-    chi(state);
-    printf("after chi: \n");
-    print_state(state);
-    iota(state, indexRound);
-    printf("after iota: \n");
-    print_state(state);
-    */
     theta(state);
     rho(state);
     pi(state);
@@ -326,8 +307,6 @@ int Ketje_Initialize(Ketje_Instance *instance, const unsigned char *key, unsigne
     Ket_StateOverwrite( instance->state, 1+keySizeInBits/8+1+nonceSizeInBits/8, smallData, 1 );
 
     KeccakP200_AddByte(instance->state, 0x80, SnP_width / 8 - 1 );
-    // printf("after keypack: \n");
-    // print_state(instance->state);
     KeccakP200_Permute_Nrounds(instance->state, Ket_StartRounds);
 
     return 0;
@@ -371,14 +350,7 @@ void Ket_FeedAssociatedDataBlocks( void *state, const unsigned char *data, unsig
     do
     {
         KeccakP200_AddByte( state, *(data++), 0 );
-        KeccakP200_AddByte( state, *(data++), 1 );
-        /*
-        #if (SnP_width == 400 )
-            KeccakP400_AddByte( state, *(data++), 2 );
-            KeccakP400_AddByte( state, *(data++), 3 );
-        #endif
-        */
-        
+        KeccakP200_AddByte( state, *(data++), 1 );        
         Ket_Step( state, Ketje_BlockSize, FRAMEBITS00 );
         
     }
@@ -389,7 +361,6 @@ int Ketje_FeedAssociatedData(Ketje_Instance *instance, const unsigned char *data
 {
     
     unsigned int size;
-    //printf("dataSizeInBytes: %d\tremainderSizer: %d\t blockSize: %d\n", dataSizeInBytes, instance->dataRemainderSize, Ketje_BlockSize);
     if ((instance->phase & Ketje_Phase_FeedingAssociatedData) == 0){
         
         return 1;
@@ -401,7 +372,6 @@ int Ketje_FeedAssociatedData(Ketje_Instance *instance, const unsigned char *data
         {
             dataSizeInBytes -= Ketje_BlockSize - instance->dataRemainderSize;
             while ( instance->dataRemainderSize != Ketje_BlockSize ) {
-                //printf("adding byte: %x\n", data );
                 KeccakP200_AddByte( instance->state, *(data++), instance->dataRemainderSize++ );
             }
             Ket_Step( instance->state, Ketje_BlockSize, FRAMEBITS00 );
@@ -452,23 +422,12 @@ void Ket_WrapBlocks( void *state, const unsigned char *plaintext, unsigned char 
     while ( nBlocks-- != 0 )
     {
         KeccakP200_ExtractBytes(state, keystream, 0, Ketje_BlockSize);
-        //printf("keystream: %x\n", keystream);
         plaintemp[0] = plaintext[0];
         plaintemp[1] = plaintext[1];
-        /* #if (SnP_width == 400 )
-        plaintemp[2] = plaintext[2];
-        plaintemp[3] = plaintext[3];
-        #endif */
         *(ciphertext++) = *(plaintext++) ^ keystream[0];
         *(ciphertext++) = *(plaintext++) ^ keystream[1];
-        /* #if (SnP_width == 400 )
-        *(ciphertext++) = *(plaintext++) ^ keystream[2];
-        *(ciphertext++) = *(plaintext++) ^ keystream[3];
-        #endif */
         KeccakP200_AddBytes(state, plaintemp, 0, Ketje_BlockSize);
         KeccakP200_AddBytes(state, frameAndPaddingBits, Ketje_BlockSize, 1);
-        //printf("after add bytes:\n");
-        //print_state(state);
         KeccakP200_Permute_Nrounds(state, Ket_StepRounds);
     }
 }
@@ -498,10 +457,6 @@ int Ketje_WrapPlaintext(Ketje_Instance *instance, const unsigned char *plaintext
         return 1;
     }
 
-    // printf("after STEP 1 wrap: \n");
-    // print_state(instance->state);
-
-
     if ( (instance->dataRemainderSize + dataSizeInBytes) > Ketje_BlockSize )
     {
         // More than a block
@@ -516,35 +471,24 @@ int Ketje_WrapPlaintext(Ketje_Instance *instance, const unsigned char *plaintext
                 --dataSizeInBytes;
             }
             Ket_Step( instance->state, Ketje_BlockSize, FRAMEBITS11 );
-            //printf("after second step\n");
-            //print_state(instance->state);
             instance->dataRemainderSize = 0;
         }
 
         //  Wrap multiple blocks except last.
-        // printf("before blocks wrap:\n");
-        // print_state(instance->state);
         if ( dataSizeInBytes > Ketje_BlockSize )
         {
             size = ((dataSizeInBytes + (Ketje_BlockSize - 1)) & ~(Ketje_BlockSize - 1)) - Ketje_BlockSize;
-            //printf("size: %d\n", size);
             Ket_WrapBlocks( instance->state, plaintext, ciphertext, size / Ketje_BlockSize );
-            //printf("after second step\n");
-            //print_state(instance->state);
             dataSizeInBytes -= size;
             plaintext += size;
             ciphertext += size;
         }
-        // printf("after blocks wrap:\n");
-        // print_state(instance->state);
-    }
+     }
 
     //  Add remaining data
-    //printf("dataSizeInBytes: %d\n", dataSizeInBytes);
     while ( dataSizeInBytes-- != 0 )
     {
         temp = *(plaintext++);
-        //printf("temp: %d\n", temp);
         *(ciphertext++) = temp ^ Ket_StateExtractByte( instance->state, instance->dataRemainderSize );
         KeccakP200_AddByte( instance->state, temp, instance->dataRemainderSize++ );
     }
@@ -557,16 +501,11 @@ void Ket_UnwrapBlocks( void *state, const unsigned char *ciphertext, unsigned ch
     unsigned char tempBlock[Ketje_BlockSize];
     unsigned char frameAndPaddingBits[1];
     frameAndPaddingBits[0] = 0x08 | FRAMEBITS11;
-    //printf("nblocks: %d\n", nBlocks);
     while ( nBlocks-- != 0 )
     {
         KeccakP200_ExtractBytes(state, tempBlock, 0, Ketje_BlockSize);
         tempBlock[0] = *(plaintext++) = *(ciphertext++) ^ tempBlock[0];
         tempBlock[1] = *(plaintext++) = *(ciphertext++) ^ tempBlock[1];
-        /* #if (SnP_width == 400 )
-        tempBlock[2] = *(plaintext++) = *(ciphertext++) ^ tempBlock[2];
-        tempBlock[3] = *(plaintext++) = *(ciphertext++) ^ tempBlock[3];
-        #endif */
         KeccakP200_AddBytes(state, tempBlock, 0, Ketje_BlockSize);
         KeccakP200_AddBytes(state, frameAndPaddingBits, Ketje_BlockSize, 1);
         KeccakP200_Permute_Nrounds(state, Ket_StepRounds);
@@ -586,15 +525,10 @@ int Ketje_UnwrapCiphertext(Ketje_Instance *instance, const unsigned char *cipher
         instance->dataRemainderSize = 0;
         instance->phase = Ketje_Phase_Unwrapping;
     }
-    // printf("after STEP 1 unwrap: \n");
-    // print_state(instance->state);
-
     if ( (instance->phase & Ketje_Phase_Unwrapping) == 0) {
         
         return 1;
         }
-
-    //printf("(instance->dataRemainderSize + dataSizeInBytes) > Ketje_BlockSize: %d\n", (instance->dataRemainderSize + dataSizeInBytes) > Ketje_BlockSize);
     if ( (instance->dataRemainderSize + dataSizeInBytes) > Ketje_BlockSize )
     {
         // More than a block
@@ -612,10 +546,7 @@ int Ketje_UnwrapCiphertext(Ketje_Instance *instance, const unsigned char *cipher
             instance->dataRemainderSize = 0;
         }
 
-        //printf("dataSizeInBytes > Ketje_BlockSize: %d\n", dataSizeInBytes > Ketje_BlockSize);
         //  Unwrap multiple blocks except last.
-        // printf("before blocks unwrap: \n");
-        // print_state(instance->state);
         if ( dataSizeInBytes > Ketje_BlockSize )
         {
 
@@ -625,8 +556,6 @@ int Ketje_UnwrapCiphertext(Ketje_Instance *instance, const unsigned char *cipher
             plaintext += size;
             ciphertext += size;
         }
-    //     printf("after blocks unwrap: \n");
-    //     print_state(instance->state);
      }
 
     //  Add remaining data
@@ -636,10 +565,6 @@ int Ketje_UnwrapCiphertext(Ketje_Instance *instance, const unsigned char *cipher
         *(plaintext++) = temp;
         KeccakP200_AddByte( instance->state, temp, instance->dataRemainderSize++ );
     }
-
-    // printf("after unwrap: \n");
-    // print_state(instance->state);
-
     return 0;
 }
 
@@ -739,7 +664,6 @@ void test_ketje( const char *file, const unsigned char *expected )
             fprintf(f, "\n");
 #endif
 
-            //printf("Altos for...\n");
             for( ADlen=0; ADlen<=400; ADlen=ADlen+ADlen/3+1+(keySizeInBits-96)+nonceSizeInBits/32)
             {
                 unsigned int Mlen;
@@ -1022,8 +946,6 @@ void getAB(char * associatedData, char * dataBody, int i ){
 
 int meu_teste(){
 
-    int keySizeInBits;
-    int keyMaxSizeInBits = SnP_width - 18;
 
     #ifdef OUTPUT
         FILE *f = fopen("my_test.txt", "w");
@@ -1125,24 +1047,8 @@ void teste_particular(){
     Ketje_FeedAssociatedData(&ketje1, A, strlen(A));
     Ketje_FeedAssociatedData(&ketje2, A, strlen(A));
 
-    // printf("before wrap: \n");
-    // print_state(ketje1.state);
-
     Ketje_WrapPlaintext(&ketje1, B, C, strlen(B));
-
-    // printf("after wrap: \n");
-    // print_state(ketje1.state);
-
-    // printf("before unwrap: \n");
-    // print_state(ketje2.state);
-
     Ketje_UnwrapCiphertext(&ketje2, C, B2, strlen(C));
-
-    // printf("after unwrap: \n");
-    // print_state(ketje2.state);
-
-
-
 
     Ketje_GetTag(&ketje1, T1, 16);
     Ketje_GetTag(&ketje2, T2, 16);

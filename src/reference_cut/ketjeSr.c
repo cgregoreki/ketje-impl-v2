@@ -22,6 +22,7 @@ typedef UINT16 tKeccakLane;
 #define maxNrRounds 20
 tKeccakLane KeccakRoundConstants[maxNrRounds];
 #define nrLanes 25
+#define OUTPUT
 unsigned int KeccakRhoOffsets[nrLanes];
 
 typedef struct {
@@ -192,8 +193,7 @@ void Ket_UnwrapBlocks( void *state, const unsigned char *ciphertext, unsigned ch
     unsigned char tempBlock[Ketje_BlockSize];
     unsigned char frameAndPaddingBits[1];
     frameAndPaddingBits[0] = 0x08 | FRAMEBITS11;
-    printf("blocks unwrap: %d\n", nBlocks);
-    printf("blocks...\n");
+
     while ( nBlocks-- != 0 )
     {
         KeccakP400_ExtractBytes(state, tempBlock, 0, Ketje_BlockSize);
@@ -206,8 +206,6 @@ void Ket_UnwrapBlocks( void *state, const unsigned char *ciphertext, unsigned ch
         KeccakP400_AddBytes(state, tempBlock, 0, Ketje_BlockSize);
         KeccakP400_AddBytes(state, frameAndPaddingBits, Ketje_BlockSize, 1);
         keccakP400NRounds(state, Ket_StepRounds);
-
-        print_state(state);
     }
 }
 
@@ -217,8 +215,7 @@ void Ket_WrapBlocks( void *state, const unsigned char *plaintext, unsigned char 
     unsigned char plaintemp[Ketje_BlockSize];
     unsigned char frameAndPaddingBits[1];
     frameAndPaddingBits[0] = 0x08 | FRAMEBITS11;
-    printf("blocks wrap: %d\n", nBlocks);
-    printf("blocks...\n");
+    //printf("blocks...\n");
     while ( nBlocks-- != 0 )
     {
         KeccakP400_ExtractBytes(state, keystream, 0, Ketje_BlockSize);
@@ -236,9 +233,9 @@ void Ket_WrapBlocks( void *state, const unsigned char *plaintext, unsigned char 
         #endif
         KeccakP400_AddBytes(state, plaintemp, 0, Ketje_BlockSize);
         KeccakP400_AddBytes(state, frameAndPaddingBits, Ketje_BlockSize, 1);
+        //print_state(state);
         keccakP400NRounds(state, Ket_StepRounds);
-
-        print_state(state);
+        //print_state(state);
     }
 }
 
@@ -292,6 +289,7 @@ int Ketje_Initialize(Ketje_Instance *instance, const unsigned char *key, unsigne
 
 int Ketje_FeedAssociatedData(Ketje_Instance *instance, const unsigned char *data, unsigned int dataSizeInBytes)
 {
+    //printf("before put_headers...\n"); print_state(instance->state);
     unsigned int size;
 
     if ((instance->phase & Ketje_Phase_FeedingAssociatedData) == 0)
@@ -319,6 +317,8 @@ int Ketje_FeedAssociatedData(Ketje_Instance *instance, const unsigned char *data
 
     while ( dataSizeInBytes-- != 0 )
         KeccakP400_AddByte( instance->state, *(data++), instance->dataRemainderSize++ );
+
+    //printf("after put_headers...\n"); print_state(instance->state);
     return 0;
 }
 
@@ -327,12 +327,14 @@ int Ketje_WrapPlaintext(Ketje_Instance *instance, const unsigned char *plaintext
     unsigned int size;
     unsigned char temp;
 
+    //printf("starting wrap...\n"); print_state(instance->state);
     if ( (instance->phase & Ketje_Phase_FeedingAssociatedData) != 0)
     {
         Ket_Step( instance->state, instance->dataRemainderSize, FRAMEBITS01 );
         instance->dataRemainderSize = 0;
         instance->phase = Ketje_Phase_Wrapping;
     }
+    //printf("after STEP 1 wrap...\n"); print_state(instance->state);
 
     if ( (instance->phase & Ketje_Phase_Wrapping) == 0)
         return 1;
@@ -357,11 +359,13 @@ int Ketje_WrapPlaintext(Ketje_Instance *instance, const unsigned char *plaintext
         //  Wrap multiple blocks except last.
         if ( dataSizeInBytes > Ketje_BlockSize )
         {
+            //printf("before blocks...\n"); print_state(instance->state);
             size = ((dataSizeInBytes + (Ketje_BlockSize - 1)) & ~(Ketje_BlockSize - 1)) - Ketje_BlockSize;
             Ket_WrapBlocks( instance->state, plaintext, ciphertext, size / Ketje_BlockSize );
             dataSizeInBytes -= size;
             plaintext += size;
             ciphertext += size;
+            //printf("after blocks...\n"); print_state(instance->state);
         }
     }
 
@@ -466,100 +470,326 @@ int Ketje_GetTag(Ketje_Instance *instance, unsigned char *tag, unsigned int tagS
 }
 
 void print_state(unsigned char* state){
-	    int i =0;
-	    for (i = 0; i < nrLanes; i++){
-	        printf("%x ", state[i]);
-	    }    
-	    printf("\n");
-	}
+    int i =0;
+    for (i = 0; i < nrLanes; i++){
+        printf("%x ", state[i]);
+    }    
+    printf("\n");
+}
+
+void test_instance_initialize(tKeccakLane* state){
+    int i = 0;
+    tKeccakLane aux[6] = {
+        'C', 'a', 'r', 'l', 'o', 's'
+    };
+
+    for (i = 0; i < 6; i++){
+            state[i] = aux[i];
+    }
+}
 
 void print_in_hex(unsigned char* t){
-	    int i =0;
+        int i =0;
 
-	    for (i = 0; i < strlen(t); i++){
-	        printf("%x ", t[i]);
-	    }    
-	    printf("\n");
-	}
+        for (i = 0; i < strlen(t); i++){
+            printf("%x ", t[i]);
+        }    
+        printf("\n");
+    }
 
-	void print_instance_details(Ketje_Instance* instance){
-	    printf("dataRemainderSize: %d\tphase: %d\n", instance->dataRemainderSize, instance->phase);
-	}
+void print_instance_details(Ketje_Instance* instance){
+    printf("dataRemainderSize: %d\tphase: %d\n", instance->dataRemainderSize, instance->phase);
+}
+
+
+
+void getKeyAndNonce(unsigned char * key, unsigned char * nonce, int i){
+    const char * keys[33] = { 
+        "",
+        "",
+        "a",
+        "esu",
+        "jag",
+        "eda",
+        "mim",
+        "vri",    
+        "fribble",
+        "alberti",
+        "hugeous",
+        "machado",
+        "solutus",
+        "preadmission",
+        "isodimorphic",
+        "quenchlessly",
+        "deflationary",
+        "compunctious",
+        "superinfluencing",
+        "classificational",
+        "palaeoentomology",
+        "conventionalised",
+        "indigestibleness",
+        "misapprehensiveranging",
+        "nondistinguishableness",
+        "counterrevolutionaries",
+        "phenylethylmalonylurea",
+        "noninterchangeableness",
+        "",
+        "",
+        "",
+        "",
+        ""
+    };
+
+    const char * nonces[33]= {
+        "",
+        "a",
+        "",
+        "mid",
+        "lag",
+        "cdr",
+        "ben",
+        "crl",
+        "balaton",
+        "sennett",
+        "minever",
+        "anglify",
+        "duotone",
+        "commiously",
+        "antisepous",
+        "unmodeized",
+        "nonexempon",
+        "parallezed",
+        "antico",
+        "noncol",
+        "subtri",
+        "palaeo",
+        "undera",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "spectrophotometrically",
+        "deoxyribonucleoprotein",
+        "pseudoenthusiastically",
+        "hexamethylenetetramine",
+        "succinylsulphathiazole"
+    };
+    strcpy(key, keys[i]); strcpy(nonce,nonces[i]);
+}
+
+void getAB(char * associatedData, char * dataBody, int i ){
+
+    const char * As[33] = {
+        "phlebothrombosis",
+        "suberose",
+        "antidogmatical",
+        "twistedly",
+        "denasalizing",
+        "precontemporaneous",
+        "vigo",
+        "hoofiness",
+        "nonsane",
+        "dandler",
+        "sweetmeat",
+        "bate",
+        "bilateralness",
+        "anthracoid",
+        "cried",
+        "bhishti",
+        "gravitationally",
+        "anisic",
+        "doralice",
+        "epileptiform",
+        "cbd",
+        "gtc",
+        "swayback",
+        "sabbat",
+        "preantepenultimate",
+        "traditionally",
+        "twerp",
+        "undeducible",
+        "postbrachium",
+        "cedartown",
+        "bunchflower",
+        "sedan",
+        "unpartaking"
+    };
+
+    const char * Bs[33] = {
+        "hinny",
+        "parrakeet",
+        "stelae",
+        "glarus",
+        "counterplotting",
+        "changchow",
+        "caseworker",
+        "pompeian",
+        "rawly",
+        "methodically",
+        "unmuttering",
+        "recleansed",
+        "maimonidean",
+        "imputting",
+        "unforeknowable",
+        "semiresiny",
+        "moshe",
+        "noncatechistic",
+        "overfertility",
+        "upsides",
+        "defrock",
+        "amortization",
+        "crumbum",
+        "godey",
+        "uredinial",
+        "geog",
+        "dasyurine",
+        "outmost",
+        "semipaste",
+        "interpenetration",
+        "reirrigating",
+        "weer",
+        "goutiness"
+    };
+
+    //memcpy(associatedData, As[i], strlen(As[i])); *dataBody = Bs[i];
+    strcpy(associatedData, As[i]); strcpy(dataBody, Bs[i]);
+}
+
+static void displayByteString(FILE *f, const char* synopsis, const unsigned char *data, unsigned int length)
+{
+    unsigned int i;
+
+    fprintf(f, "%s:", synopsis);
+    for(i=0; i<length; i++)
+        fprintf(f, " %02x", (unsigned int)data[i]);
+    fprintf(f, "\n");
+}
+
+int meu_teste(){
+
+    #ifdef OUTPUT
+        FILE *f = fopen("my_test.txt", "w");
+    #endif
+
+    int i, j = 0;
+
+    for (i = 0; i < 33; i++){
+        Ketje_Instance ketje1, ketje2;
+        unsigned char key[50], nonce[50];
+        memset(key, 0, 50); memset(nonce, 0, 50);
+
+        getKeyAndNonce(key, nonce, i);
+        Ketje_Initialize(&ketje1, key, strlen(key)*8,nonce,strlen(nonce)*8);
+        Ketje_Initialize(&ketje2, key, strlen(key)*8,nonce,strlen(nonce)*8);
+
+#ifdef OUTPUT
+        fprintf(f, "***\n");
+        fprintf(f, "initialize with key of %u bits, nonce of %u bits:\n", strlen(key)*8, strlen(nonce)*8);
+        displayByteString(f, "key", key, strlen(key));
+        displayByteString(f, "nonce", nonce, strlen(nonce));
+        fprintf(f, "\n");
+#endif
+        for (j = 0; j < 33; j++){
+            // para cada chave, pega todos os bodys and associatedDatas e roda o ketje.
+            memset(&ketje1, 0, sizeof(Ketje_Instance));
+            memset(&ketje2, 0, sizeof(Ketje_Instance));
+            Ketje_Initialize(&ketje1, key, strlen(key)*8,nonce,strlen(nonce)*8);
+            Ketje_Initialize(&ketje2, key, strlen(key)*8,nonce,strlen(nonce)*8);  
+
+            //printf("after start:\n"); print_state(ketje1.state);  
+
+            unsigned char A[400], B[400], C[400], B2[400], T1[16], T2[16];
+            memset(A, 0, 400); memset(B, 0, 400); memset(C, 0, 400); memset(B2, 0, 400);
+            memset(T1, 0, 16); memset(T2, 0, 16);
+
+            getAB(A, B, j);
+
+            Ketje_FeedAssociatedData(&ketje1, A, strlen(A));
+            Ketje_FeedAssociatedData(&ketje2, A, strlen(A));
+
+            Ketje_WrapPlaintext(&ketje1, B, C, strlen(B));
+            Ketje_UnwrapCiphertext(&ketje2, C, B2, strlen(C));
+
+            Ketje_GetTag(&ketje1, T1, 16);
+            Ketje_GetTag(&ketje2, T2, 16);
+
+#ifdef OUTPUT
+            displayByteString(f, "associated data", A, strlen(A));
+            displayByteString(f, "plaintext", B, strlen(B));
+            displayByteString(f, "ciphertext", C, strlen(B));
+            displayByteString(f, "tag 1", T1, 16);
+            displayByteString(f, "tag 2", T2, 16);
+            fprintf(f, "\n");
+#endif
+            printf("\nRESULTADO: \n***\n");
+            printf("key %s len: %d :", key, strlen(key)); print_in_hex(key);
+            printf("nonce %s len: %d :", nonce, strlen(nonce)); print_in_hex(nonce);
+            printf("associated data "); print_in_hex(A);
+            printf("plaintext "); print_in_hex(B);
+            printf("ciphertext "); print_in_hex(C);
+            printf("tag1 "); print_in_hex_len(T1, 16);
+            printf("tag2 "); print_in_hex_len(T2, 16);
+            printf("***\n");
+            //getchar();        
+        }   
+    }
+
+    fclose(f);
+    return 0;
+}
+
+void print_in_hex_len(unsigned char* t, int len){
+    int i =0;
+
+    for (i = 0; i < len; i++){
+        printf("%x ", t[i]);
+    }    
+    printf("\n");
+}
+
+
+
+void teste_particular(){
+    int i = 32 ; int j = 32;
+    Ketje_Instance ketje1, ketje2;
+    unsigned char key[50], nonce[50];
+    memset(key, 0, 50); memset(nonce, 0, 50);
+
+    getKeyAndNonce(key, nonce, i);
+    Ketje_Initialize(&ketje1, key, strlen(key)*8,nonce,strlen(nonce)*8);
+    Ketje_Initialize(&ketje2, key, strlen(key)*8,nonce,strlen(nonce)*8);
+
+    unsigned char A[400]; unsigned char B[400]; unsigned char C[400]; unsigned char B2[400];
+    unsigned char T1[16]; unsigned char T2[16];
+    memset(A, 0, 400); memset(B, 0, 400); memset(C, 0, 400); memset(B2, 0, 400);
+    memset(T1, 0, 16); memset(T2, 0, 16);
+
+    getAB(A, B, j);
+
+    Ketje_FeedAssociatedData(&ketje1, A, strlen(A));
+    Ketje_FeedAssociatedData(&ketje2, A, strlen(A));
+
+    Ketje_WrapPlaintext(&ketje1, B, C, strlen(B));
+    Ketje_UnwrapCiphertext(&ketje2, C, B2, strlen(C));
+
+    Ketje_GetTag(&ketje1, T1, 16);
+    Ketje_GetTag(&ketje2, T2, 16);
+
+    printf("\nRESULTADO: \n***\n");
+    printf("key %s len: %d :", key, strlen(key)); print_in_hex(key);
+    printf("nonce %s len: %d :", nonce, strlen(nonce)); print_in_hex(nonce);
+    printf("associated data "); print_in_hex(A);
+    printf("plaintext "); print_in_hex(B);
+    printf("ciphertext "); print_in_hex(C);
+    printf("tag1 "); print_in_hex_len(T1, 16);
+    printf("tag2 "); print_in_hex_len(T2, 16);
+    printf("***\n");
+
+}
 
 int main(){
-	KeccakP400_InitializeRoundConstants();
-	KeccakP400_InitializeRhoOffsets();
-	printf_rho_offsets();
-	print_round_constants();
-	int i;
-	unsigned int b;
-	for (i = 0; i<40; i++){
-		b = (((i + (4 - 1)) & ~(4 - 1)) - 4)/4;
-		printf("%d\t%d\n", i,b);
-	}
-
-
-	unsigned char key[400], nonce[400];
-	unsigned char * key_aux = "83nv4eh";
-	unsigned char * nonce_aux = "90m546brj";
-
-	memset(key, 0, 400);
-	memset(nonce, 0, 400);
-
-	strcpy(key, key_aux);
-	strcpy(nonce, nonce_aux);
-
-	int keySizeInBits, nonceSizeInBits;
-    int associatedDataSize = 0;
-    int keyMaxSizeInBits = 400 - 18;
-
-    unsigned char *associatedData = "Gregoreki";
-
-    Ketje_Instance instance;
-    Ketje_Instance instance_unwrap;
-    
-    keySizeInBits = strlen(key)*8;
-    nonceSizeInBits = strlen(nonce)*8;
-
-    Ketje_Initialize(&instance, key, keySizeInBits,nonce,nonceSizeInBits);
-    Ketje_Initialize(&instance_unwrap, key, keySizeInBits,nonce,nonceSizeInBits);
-
-    printf("after initialize: \n");
-    print_state(instance.state);
-    Ketje_FeedAssociatedData(&instance, associatedData, strlen(associatedData) );
-    Ketje_FeedAssociatedData(&instance_unwrap, associatedData, strlen(associatedData) );
-    printf("after associated data: \n");
-    print_state(instance.state);
-
-
-    unsigned char *text = "meu texto";
-    
-    unsigned char cipher_t[400];
-    memset(cipher_t, 0, sizeof(cipher_t));
-
-    Ketje_WrapPlaintext(&instance, text, cipher_t, strlen(text));
-    printf("after wrap:\n");
-    print_state(instance.state);
-    print_instance_details(&instance);
-    printf("cipher_t: \t"); print_in_hex(cipher_t);
-
-
-    unsigned char unwrapped[400];
-    memset(unwrapped, 0, 400);
-    Ketje_UnwrapCiphertext(&instance_unwrap, cipher_t, unwrapped, strlen(cipher_t));
-    printf("after unwrap:\n");
-    print_state(instance_unwrap.state);
-
-    printf("original: " ); print_in_hex(text);
-    printf("recuperada: "); print_in_hex(unwrapped);
-    printf("cipher_t: "); print_in_hex(cipher_t);
-    printf("strlenC: %d\n", strlen(cipher_t));
-
-    unsigned char tag[400]; unsigned char tag2[400]; memset(tag, 0, 400); memset(tag2, 0, 400);
-    Ketje_GetTag(&instance, tag, 16);
-    Ketje_GetTag(&instance_unwrap, tag2, 16);
-    printf("tag1:\t"); print_in_hex(tag);
-    printf("tag2:\t"); print_in_hex(tag2);
-
+    meu_teste();
+    //teste_particular();
 	return 0;
 }

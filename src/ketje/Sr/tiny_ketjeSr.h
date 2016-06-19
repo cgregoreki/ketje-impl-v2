@@ -10,7 +10,6 @@
 	#define nrLanes 25
 	#define maxNrRounds 20
 
-	// for keccakp200
 	#define state_width 400
 
 	#define FRAMEBITS0     	0x02 //0010 
@@ -27,7 +26,6 @@
 
 //	--- auxiliar functions --- //
 	void initialize_mem_state(void *state);
-	void print_state(unsigned char* state);
 	void add_Bytes(void *state, const unsigned char *data, unsigned int offset, unsigned int length);
 	void add_Byte(void *state, unsigned char byte, unsigned int offset);
 	unsigned char extract_byte(void *state, unsigned int offset);

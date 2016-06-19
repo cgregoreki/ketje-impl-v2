@@ -142,13 +142,9 @@
 		Ketje_step(instance->state, instance->dataRemainderSize, FRAMEBITS01);
 		instance->dataRemainderSize = 0;
 
-		// printf("after STEP 1 wrap: \n");
-  //   	print_state(instance->state);
-
 		int dataSizeInBytes_B = strlen(B);
 		int nblocks_B = return_ketjeJrSize(dataSizeInBytes_B)/Ketje_BlockSize;
-		// printf("before blocks wrap: \n");
-  //   	print_state(instance->state);
+		
 		if (nblocks_B > 0){
 			for (i = 1; i <= nblocks_B;i++){
 				temp[0] = B[0]; temp[1] = B[1];
@@ -179,13 +175,9 @@
 		Ketje_step(instance->state, instance->dataRemainderSize, FRAMEBITS01);
 		instance->dataRemainderSize = 0; 
 		
-		// printf("after STEP 1 unwrap: \n");
-  		// print_state(instance->state);
-
 		int dataSizeInBytes_C = strlen(C);
 		int nblocks_C = return_ketjeJrSize(dataSizeInBytes_C)/Ketje_BlockSize;
-		// printf("before blocks unwrap: \n");
-  		// print_state(instance->state);
+		
 		if (nblocks_C > 0){
 			for (i = 0; i < nblocks_C;i++){
 
@@ -198,8 +190,6 @@
 				keccakP200NRounds(instance->state, nstep);
 			}
 		}
-		// printf("after blocks: \n");
-  //   	print_state(instance->state);
 
 		rem = dataSizeInBytes_C - nblocks_C*Ketje_BlockSize;
 		while(rem-- > 0){
@@ -207,8 +197,6 @@
 	        *(B++) = temp[0];
 	        add_Byte(instance->state, temp[0], instance->dataRemainderSize++ );
 		}
-		// printf("after unwrap: \n");
-  //   	print_state(instance->state);
 	}
 
 	void generate_tag(Instance *instance, unsigned char *T, unsigned int tagSizeInBytes)
