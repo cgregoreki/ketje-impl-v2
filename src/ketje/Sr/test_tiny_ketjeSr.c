@@ -213,7 +213,7 @@ void getAB(char * associatedData, char * dataBody, int i ){
 }
 
 
-int meu_teste(){
+int test_sr(){
 
     #ifdef OUTPUT
         FILE *f = fopen("my_test.txt", "w");
@@ -270,15 +270,6 @@ int meu_teste(){
             displayByteString(f, "tag 2", T2, 16);
             fprintf(f, "\n");
 #endif
-            printf("\nRESULTADO: \n***\n");
-            printf("key %s len: %d :", key, strlen(key)); print_in_hex(key);
-            printf("nonce %s len: %d :", nonce, strlen(nonce)); print_in_hex(nonce);
-            printf("associated data "); print_in_hex(A);
-            printf("plaintext "); print_in_hex(B);
-            printf("ciphertext "); print_in_hex(C);
-            printf("tag1 "); print_in_hex_len(T1, 16);
-            printf("tag2 "); print_in_hex_len(T2, 16);
-            printf("***\n");
         }   
     }
 
@@ -286,43 +277,8 @@ int meu_teste(){
     return 0;
 }
 
-void teste_particular(){
-    int i = 32; int j = 32;
-    Instance ketje1, ketje2;
-    unsigned char key[50], nonce[50];
-    memset(key, 0, 50); memset(nonce, 0, 50);
-
-    getKeyAndNonce(key, nonce, i);
-    ketje_monkeyduplex_start(&ketje1, key, nonce);
-    ketje_monkeyduplex_start(&ketje2, key, nonce);
-
-    unsigned char A[400], B[400], C[400], B2[400], T1[16], T2[16];
-    memset(A, 0, 400); memset(B, 0, 400); memset(C, 0, 400); memset(B2, 0, 400);
-    memset(T1, 0, 16); memset(T2, 0, 16);
-
-    getAB(A, B, j);
-
-    wrap3(&ketje1, A, B, C);
-    unwrap3(&ketje2, A, C, B);
-
-    generate_tag(&ketje1, T1, 16);
-    generate_tag(&ketje2, T2, 16);
-
-    printf("\nRESULTADO: \n***\n");
-    printf("key %s len: %d :", key, strlen(key)); print_in_hex(key);
-    printf("nonce %s len: %d :", nonce, strlen(nonce)); print_in_hex(nonce);
-    printf("associated data "); print_in_hex(A);
-    printf("plaintext "); print_in_hex(B);
-    printf("ciphertext "); print_in_hex(C);
-    printf("tag1 "); print_in_hex_len(T1,16);
-    printf("tag2 "); print_in_hex_len(T2, 16);
-    printf("***\n");
-
-}
-
 int main (){ 
 
-    meu_teste();
-    //teste_particular();
+    test_sr();
 	
 }

@@ -1,3 +1,4 @@
+#include  <assert.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -57,28 +58,32 @@ int LFSR86540(UINT8 *LFSR)
 
 void KeccakP400_AddByte(void *state, unsigned char byte, unsigned int offset)
 {
-    //assert(offset < 50);
+    assert(offset < 50);
     ((unsigned char *)state)[offset] ^= byte;
 }
 
-/* ---------------------------------------------------------------- */
+void KeccakP400_StaticInitialize()
+{
+    if (sizeof(tKeccakLane) != 2) {
+        printf("tKeccakLane should be 16-bit wide\n");
+        abort();
+    }
+    KeccakP400_InitializeRoundConstants();
+    KeccakP400_InitializeRhoOffsets();
+}
 
 void KeccakP400_AddBytes(void *state, const unsigned char *data, unsigned int offset, unsigned int length)
 {
     unsigned int i;
 
-    //assert(offset < 50);
-    //assert(offset+length <= 50);
+    assert(offset < 50);
+    assert(offset+length <= 50);
     for(i=0; i<length; i++)
         ((unsigned char *)state)[offset+i] ^= data[i];
 }
 
-/* ---------------------------------------------------------------- */
-
 void KeccakP400_OverwriteBytes(void *state, const unsigned char *data, unsigned int offset, unsigned int length)
 {
-    //assert(offset < 50);
-    //assert(offset+length <= 50);
     memcpy((unsigned char*)state+offset, data, length);
 }
 
@@ -98,7 +103,7 @@ void KeccakP400_InitializeRoundConstants()
     }
 }
 
-
+#define ROL16(a, offset) ((offset != 0) ? ((((unsigned short)a) << offset) ^ (((unsigned short)a) >> (sizeof(unsigned short)*8-offset))) : a)
 #define index(x, y) (((x)%5)+5*((y)%5))
 
 void KeccakP400_InitializeRhoOffsets()
@@ -122,25 +127,75 @@ void KeccakP400_Initialize(void *state)
 }
 
 
-void print_round_constants(){
-	int i = 0;
-	printf("Round constants:\n");
-	for (i = 0; i < 20; i++){
-		printf("%x, ", KeccakRoundConstants[i]);
-	}
-	printf("\n");
-}
+void theta(unsigned short *A)
+{
+    unsigned int x, y;
+    unsigned short C[5], D[5];
 
-
-void printf_rho_offsets(){
-    int i = 0;
-    printf("rho offsets:\n");
-    for (i = 0; i < nrLanes; i++){
-        printf("%d, ", KeccakRhoOffsets[i]);
+    for(x=0; x<5; x++) {
+        C[x] = 0;
+        for(y=0; y<5; y++)
+            C[x] ^= A[index(x, y)];
     }
-    printf("\n");
+    for(x=0; x<5; x++)
+        D[x] = ROL16(C[(x+1)%5], 1) ^ C[(x+4)%5];
+    for(x=0; x<5; x++)
+        for(y=0; y<5; y++)
+            A[index(x, y)] ^= D[x];
 }
 
+void rho(unsigned short *A)
+{
+    unsigned int x, y;
+
+    for(x=0; x<5; x++) for(y=0; y<5; y++)
+        A[index(x, y)] = ROL16(A[index(x, y)], KeccakRhoOffsets[index(x, y)]);
+}
+
+void pi(unsigned short *A)
+{
+    unsigned int x, y;
+    unsigned short tempA[25];
+
+    for(x=0; x<5; x++) for(y=0; y<5; y++)
+        tempA[index(x, y)] = A[index(x, y)];
+    for(x=0; x<5; x++) for(y=0; y<5; y++)
+        A[index(0*x+1*y, 2*x+3*y)] = tempA[index(x, y)];
+}
+
+void chi(unsigned short *A)
+{
+    unsigned int x, y;
+    unsigned short C[5];
+
+    for(y=0; y<5; y++) {
+        for(x=0; x<5; x++)
+            C[x] = A[index(x, y)] ^ ((~A[index(x+1, y)]) & A[index(x+2, y)]);
+        for(x=0; x<5; x++)
+            A[index(x, y)] = C[x];
+    }
+}
+
+void iota(unsigned short *A, unsigned int indexRound)
+{
+    A[index(0, 0)] ^= KeccakRoundConstants[indexRound];
+}
+
+
+void Round400(unsigned short* state, unsigned int rnd){
+    theta(state);
+    rho(state);
+    pi(state);
+    chi(state);
+    iota(state, rnd);
+}
+
+void keccakP400NRounds(void* state, int rounds){
+    int i = 0;
+    for(i=(maxNrRounds-rounds); i<maxNrRounds; i++){
+        Round400(state, i);
+    }
+}
 
 unsigned char Ket_StateExtractByte( void *state, unsigned int offset )
 {
@@ -152,8 +207,8 @@ unsigned char Ket_StateExtractByte( void *state, unsigned int offset )
 
 void KeccakP400_ExtractBytes(const void *state, unsigned char *data, unsigned int offset, unsigned int length)
 {
-    //assert(offset < 50);
-    //assert(offset+length <= 50);
+    assert(offset < 50);
+    assert(offset+length <= 50);
     memcpy(data, (unsigned char*)state+offset, length);
 }
 
@@ -215,7 +270,6 @@ void Ket_WrapBlocks( void *state, const unsigned char *plaintext, unsigned char 
     unsigned char plaintemp[Ketje_BlockSize];
     unsigned char frameAndPaddingBits[1];
     frameAndPaddingBits[0] = 0x08 | FRAMEBITS11;
-    //printf("blocks...\n");
     while ( nBlocks-- != 0 )
     {
         KeccakP400_ExtractBytes(state, keystream, 0, Ketje_BlockSize);
@@ -233,9 +287,7 @@ void Ket_WrapBlocks( void *state, const unsigned char *plaintext, unsigned char 
         #endif
         KeccakP400_AddBytes(state, plaintemp, 0, Ketje_BlockSize);
         KeccakP400_AddBytes(state, frameAndPaddingBits, Ketje_BlockSize, 1);
-        //print_state(state);
         keccakP400NRounds(state, Ket_StepRounds);
-        //print_state(state);
     }
 }
 
@@ -289,7 +341,6 @@ int Ketje_Initialize(Ketje_Instance *instance, const unsigned char *key, unsigne
 
 int Ketje_FeedAssociatedData(Ketje_Instance *instance, const unsigned char *data, unsigned int dataSizeInBytes)
 {
-    //printf("before put_headers...\n"); print_state(instance->state);
     unsigned int size;
 
     if ((instance->phase & Ketje_Phase_FeedingAssociatedData) == 0)
@@ -318,7 +369,6 @@ int Ketje_FeedAssociatedData(Ketje_Instance *instance, const unsigned char *data
     while ( dataSizeInBytes-- != 0 )
         KeccakP400_AddByte( instance->state, *(data++), instance->dataRemainderSize++ );
 
-    //printf("after put_headers...\n"); print_state(instance->state);
     return 0;
 }
 
@@ -327,14 +377,12 @@ int Ketje_WrapPlaintext(Ketje_Instance *instance, const unsigned char *plaintext
     unsigned int size;
     unsigned char temp;
 
-    //printf("starting wrap...\n"); print_state(instance->state);
     if ( (instance->phase & Ketje_Phase_FeedingAssociatedData) != 0)
     {
         Ket_Step( instance->state, instance->dataRemainderSize, FRAMEBITS01 );
         instance->dataRemainderSize = 0;
         instance->phase = Ketje_Phase_Wrapping;
     }
-    //printf("after STEP 1 wrap...\n"); print_state(instance->state);
 
     if ( (instance->phase & Ketje_Phase_Wrapping) == 0)
         return 1;
@@ -359,13 +407,11 @@ int Ketje_WrapPlaintext(Ketje_Instance *instance, const unsigned char *plaintext
         //  Wrap multiple blocks except last.
         if ( dataSizeInBytes > Ketje_BlockSize )
         {
-            //printf("before blocks...\n"); print_state(instance->state);
             size = ((dataSizeInBytes + (Ketje_BlockSize - 1)) & ~(Ketje_BlockSize - 1)) - Ketje_BlockSize;
             Ket_WrapBlocks( instance->state, plaintext, ciphertext, size / Ketje_BlockSize );
             dataSizeInBytes -= size;
             plaintext += size;
             ciphertext += size;
-            //printf("after blocks...\n"); print_state(instance->state);
         }
     }
 
@@ -477,16 +523,6 @@ void print_state(unsigned char* state){
     printf("\n");
 }
 
-void test_instance_initialize(tKeccakLane* state){
-    int i = 0;
-    tKeccakLane aux[6] = {
-        'C', 'a', 'r', 'l', 'o', 's'
-    };
-
-    for (i = 0; i < 6; i++){
-            state[i] = aux[i];
-    }
-}
 
 void print_in_hex(unsigned char* t){
         int i =0;
@@ -497,11 +533,15 @@ void print_in_hex(unsigned char* t){
         printf("\n");
     }
 
-void print_instance_details(Ketje_Instance* instance){
-    printf("dataRemainderSize: %d\tphase: %d\n", instance->dataRemainderSize, instance->phase);
+
+void print_in_hex_len(unsigned char* t, int len){
+    int i =0;
+
+    for (i = 0; i < len; i++){
+        printf("%x ", t[i]);
+    }    
+    printf("\n");
 }
-
-
 
 void getKeyAndNonce(unsigned char * key, unsigned char * nonce, int i){
     const char * keys[33] = { 
@@ -666,10 +706,10 @@ static void displayByteString(FILE *f, const char* synopsis, const unsigned char
     fprintf(f, "\n");
 }
 
-int meu_teste(){
+void test_sr(){
 
     #ifdef OUTPUT
-        FILE *f = fopen("my_test.txt", "w");
+        FILE *f = fopen("text.txt", "w");
     #endif
 
     int i, j = 0;
@@ -697,8 +737,6 @@ int meu_teste(){
             Ketje_Initialize(&ketje1, key, strlen(key)*8,nonce,strlen(nonce)*8);
             Ketje_Initialize(&ketje2, key, strlen(key)*8,nonce,strlen(nonce)*8);  
 
-            //printf("after start:\n"); print_state(ketje1.state);  
-
             unsigned char A[400], B[400], C[400], B2[400], T1[16], T2[16];
             memset(A, 0, 400); memset(B, 0, 400); memset(C, 0, 400); memset(B2, 0, 400);
             memset(T1, 0, 16); memset(T2, 0, 16);
@@ -722,74 +760,16 @@ int meu_teste(){
             displayByteString(f, "tag 2", T2, 16);
             fprintf(f, "\n");
 #endif
-            printf("\nRESULTADO: \n***\n");
-            printf("key %s len: %d :", key, strlen(key)); print_in_hex(key);
-            printf("nonce %s len: %d :", nonce, strlen(nonce)); print_in_hex(nonce);
-            printf("associated data "); print_in_hex(A);
-            printf("plaintext "); print_in_hex(B);
-            printf("ciphertext "); print_in_hex(C);
-            printf("tag1 "); print_in_hex_len(T1, 16);
-            printf("tag2 "); print_in_hex_len(T2, 16);
-            printf("***\n");
-            //getchar();        
         }   
     }
 
+#ifdef OUTPUT    
     fclose(f);
-    return 0;
-}
-
-void print_in_hex_len(unsigned char* t, int len){
-    int i =0;
-
-    for (i = 0; i < len; i++){
-        printf("%x ", t[i]);
-    }    
-    printf("\n");
-}
-
-
-
-void teste_particular(){
-    int i = 32 ; int j = 32;
-    Ketje_Instance ketje1, ketje2;
-    unsigned char key[50], nonce[50];
-    memset(key, 0, 50); memset(nonce, 0, 50);
-
-    getKeyAndNonce(key, nonce, i);
-    Ketje_Initialize(&ketje1, key, strlen(key)*8,nonce,strlen(nonce)*8);
-    Ketje_Initialize(&ketje2, key, strlen(key)*8,nonce,strlen(nonce)*8);
-
-    unsigned char A[400]; unsigned char B[400]; unsigned char C[400]; unsigned char B2[400];
-    unsigned char T1[16]; unsigned char T2[16];
-    memset(A, 0, 400); memset(B, 0, 400); memset(C, 0, 400); memset(B2, 0, 400);
-    memset(T1, 0, 16); memset(T2, 0, 16);
-
-    getAB(A, B, j);
-
-    Ketje_FeedAssociatedData(&ketje1, A, strlen(A));
-    Ketje_FeedAssociatedData(&ketje2, A, strlen(A));
-
-    Ketje_WrapPlaintext(&ketje1, B, C, strlen(B));
-    Ketje_UnwrapCiphertext(&ketje2, C, B2, strlen(C));
-
-    Ketje_GetTag(&ketje1, T1, 16);
-    Ketje_GetTag(&ketje2, T2, 16);
-
-    printf("\nRESULTADO: \n***\n");
-    printf("key %s len: %d :", key, strlen(key)); print_in_hex(key);
-    printf("nonce %s len: %d :", nonce, strlen(nonce)); print_in_hex(nonce);
-    printf("associated data "); print_in_hex(A);
-    printf("plaintext "); print_in_hex(B);
-    printf("ciphertext "); print_in_hex(C);
-    printf("tag1 "); print_in_hex_len(T1, 16);
-    printf("tag2 "); print_in_hex_len(T2, 16);
-    printf("***\n");
-
+    printf("Log wrote to text.txt\n");
+#endif
 }
 
 int main(){
-    meu_teste();
-    //teste_particular();
+    test_sr();
 	return 0;
 }

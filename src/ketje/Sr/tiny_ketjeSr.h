@@ -30,7 +30,6 @@
 	void add_Byte(void *state, unsigned char byte, unsigned int offset);
 	unsigned char extract_byte(void *state, unsigned int offset);
 	void extract_bytes(void* state, unsigned char * data, unsigned int offset, unsigned int length);
-	void write_data_to_pointer_on_offset(void *state, unsigned char *data, unsigned int offset, unsigned int length);
 
 //	--- Ketje Functions --- //
 	void init_keypack(unsigned char * key_p, unsigned char * key);

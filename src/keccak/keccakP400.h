@@ -2,7 +2,6 @@
 #include <string.h>	
 
 //	---	definitions --- //
-	#define KeccakF_stateSizeInBytes 50
 	#define maxNumberOfRounds 20
 	#define nrLanes 25
 	#define state_width	400
