@@ -27,12 +27,10 @@
 
 //	--- auxiliar functions --- //
 	void initialize_mem_state(void *state);
-	void print_state(unsigned char* state);
 	void add_Bytes(void *state, const unsigned char *data, unsigned int offset, unsigned int length);
 	void add_Byte(void *state, unsigned char byte, unsigned int offset);
 	unsigned char extract_byte(void *state, unsigned int offset);
 	void extract_bytes(void* state, unsigned char * data, unsigned int offset, unsigned int length);
-	void write_data_to_pointer_on_offset(void *state, unsigned char *data, unsigned int offset, unsigned int length);
 	int return_ketjeJrSize(int len);
 
 //	--- Ketje Functions --- //

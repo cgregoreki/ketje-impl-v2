@@ -42,25 +42,6 @@ static void displayByteString(FILE *f, const char* synopsis, const unsigned char
     fprintf(f, "\n");
 }
 
-int hex2bin( const char *s )
-{
-    int ret=0;
-    int i;
-    for( i=0; i<2; i++ )
-    {
-        char c = *s++;
-        int n=0;
-        if( '0'<=c && c<='9' )
-            n = c-'0';
-        else if( 'a'<=c && c<='f' )
-            n = 10 + c-'a';
-        else if( 'A'<=c && c<='F' )
-            n = 10 + c-'A';
-        ret = n + ret*16;
-    }
-    return ret;
-}
-
 void getKeyAndNonce(unsigned char * key, unsigned char * nonce, int i){
     const char * keys[33] = { 
         "",

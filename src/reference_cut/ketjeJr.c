@@ -82,24 +82,6 @@ void KeccakP200_InitializeRhoOffsets()
     }
 }
 
-void printf_round_constants(){
-    int i = 0;
-    printf("Round constants:\n");
-    for (i = 0; i < maxNrRounds; i++){
-        printf("%x ", KeccakRoundConstants[i]);
-    }
-    printf("\n");
-}
-
-void printf_rho_offsets(){
-    int i = 0;
-    printf("Round constants:\n");
-    for (i = 0; i < nrLanes; i++){
-        printf("%d ", KeccakRhoOffsets[i]);
-    }
-    printf("\n");
-}
-
 int LFSR86540(UINT8 *LFSR)
 {
     int result = ((*LFSR) & 0x01) != 0;
@@ -273,13 +255,10 @@ int Ketje_Initialize(Ketje_Instance *instance, const unsigned char *key, unsigne
         return 1;
     }
 
-    //done
     instance->phase = Ketje_Phase_FeedingAssociatedData;
-    //done
+
     instance->dataRemainderSize = 0;
-    //initialize ignore
     KeccakP200_StaticInitialize();
-    //initialize already done
     KeccakP200_Initialize(instance->state);
 
     // Key pack
@@ -320,15 +299,6 @@ void generateSimpleRawMaterial(unsigned char* data, unsigned int length, unsigne
         unsigned int iRolled = i*seed1;
         unsigned char byte = (iRolled+length+seed2)%0xFF;
         data[i] = byte;
-    }
-}
-
-void assert_2(int condition, char * synopsis)
-{
-    if (!condition)
-    {
-        //printf("%s\n", synopsis);
-        //exit(1);
     }
 }
 
@@ -605,7 +575,7 @@ int Ketje_GetTag(Ketje_Instance *instance, unsigned char *tag, unsigned int tagS
 }
 
 
-
+/*
 void test_ketje( const char *file, const unsigned char *expected )
 {
 	int keySizeInBits;
@@ -674,7 +644,6 @@ void test_ketje( const char *file, const unsigned char *expected )
                     unsigned char ciphertext[400];
                     unsigned char plaintextPrime[400];
                     unsigned char tag1[16], tag2[16];
-                    //printf("ADlen %u, Mlen %u\n", ADlen, Mlen);
 
                     generateSimpleRawMaterial(associatedData, ADlen, 0x34+Mlen, 3);
                     generateSimpleRawMaterial(plaintext, Mlen, 0x45+ADlen, 4);
@@ -756,7 +725,7 @@ void test_ketje( const char *file, const unsigned char *expected )
     assert_2(memcmp(overallChecksum, expected, 16) == 0, "Wrong checksum");
 
 }
-
+*/
 void print_state(tKeccakLane* state){
     int i =0;
     for (i = 0; i < nrLanes; i++){
