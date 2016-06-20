@@ -235,7 +235,7 @@ int meu_teste(){
 
 #ifdef OUTPUT
         fprintf(f, "***\n");
-        fprintf(f, "initialize with key of %u bits, nonce of %u bits:\n", strlen(key)*8, strlen(nonce)*8);
+        fprintf(f, "initialize with key of %u bits, nonce of %u bits:\n", (unsigned int) strlen(key)*8, (unsigned int) strlen(nonce)*8);
         displayByteString(f, "key", key, strlen(key));
         displayByteString(f, "nonce", nonce, strlen(nonce));
         fprintf(f, "\n");
@@ -270,8 +270,8 @@ int meu_teste(){
             fprintf(f, "\n");
 #endif
             printf("\nRESULTADO: \n***\n");
-            printf("key %s len: %d :", key, strlen(key)); print_in_hex(key);
-            printf("nonce %s len: %d :", nonce, strlen(nonce)); print_in_hex(nonce);
+            printf("key %s len: %d :", key, (unsigned int) strlen(key)); print_in_hex(key);
+            printf("nonce %s len: %d :", nonce, (unsigned int) strlen(nonce)); print_in_hex(nonce);
             printf("associated data "); print_in_hex(A);
             printf("plaintext "); print_in_hex(B);
             printf("ciphertext "); print_in_hex(C);
@@ -308,8 +308,8 @@ void teste_particular(){
     generate_tag(&ketje2, T2, 16);
 
     printf("\nRESULTADO: \n***\n");
-    printf("key %s len: %d :", key, strlen(key)); print_in_hex(key);
-    printf("nonce %s len: %d :", nonce, strlen(nonce)); print_in_hex(nonce);
+    printf("key %s len: %d :", key, (unsigned int)strlen(key)); print_in_hex(key);
+    printf("nonce %s len: %d :", nonce, (unsigned int)strlen(nonce)); print_in_hex(nonce);
     printf("associated data "); print_in_hex(A);
     printf("plaintext "); print_in_hex(B);
     printf("ciphertext "); print_in_hex(C);

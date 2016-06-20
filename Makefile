@@ -33,3 +33,6 @@ all: $(OBJPROG_JR)
 
 $(OBJPROG_JR): $(addprefix $(OBJDIR)/, $(OBJ_JR))
 	$(LINK.o) $^ $(LDLIBS) -o $@
+
+clean: 
+	@rm -rf bin
