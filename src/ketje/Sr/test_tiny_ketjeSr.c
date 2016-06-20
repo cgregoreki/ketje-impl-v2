@@ -197,7 +197,7 @@ void getAB(char * associatedData, char * dataBody, int i ){
 int test_sr(){
 
     #ifdef OUTPUT
-        FILE *f = fopen("my_test.txt", "w");
+        FILE *f = fopen("out_Sr.txt", "w");
     #endif
 
     int i, j = 0;
@@ -215,7 +215,7 @@ int test_sr(){
 
 #ifdef OUTPUT
         fprintf(f, "***\n");
-        fprintf(f, "initialize with key of %u bits, nonce of %u bits:\n", strlen(key)*8, strlen(nonce)*8);
+        fprintf(f, "initialize with key of %u bits, nonce of %u bits:\n", (unsigned int) strlen(key)*8, (unsigned int) strlen(nonce)*8);
         displayByteString(f, "key", key, strlen(key));
         displayByteString(f, "nonce", nonce, strlen(nonce));
         fprintf(f, "\n");
@@ -243,7 +243,6 @@ int test_sr(){
 
 
 #ifdef OUTPUT
-
             displayByteString(f, "associated data", A, strlen(A));
             displayByteString(f, "plaintext", B, strlen(B));
             displayByteString(f, "ciphertext", C, strlen(B));
@@ -253,8 +252,10 @@ int test_sr(){
 #endif
         }   
     }
-
+#ifdef OUTPUT
     fclose(f);
+    printf("Log wrote to out_Sr.txt\n");
+#endif
     return 0;
 }
 
