@@ -1,35 +1,35 @@
-CC        := gcc
-LD        := gcc
+CC			= gcc
+PROG_JR 	= test_tiny_ketjeJr
+OBJ_JR 		= test_tiny_ketjeJr.o keccakP200.o tiny_ketjeJr.o
+BIN_JR		= bin/ketje/JR
+KECCAK_PATH	= src/keccak
+JR_PATH		= src/ketje/Jr
 
-MODULES   := keccak ketje
-SRC_DIR   := $(addprefix src/,$(MODULES))
-BUILD_DIR := $(addprefix bin/,$(MODULES))
+OBJDIR 		= bin/obj
+VPATH 		= $(OBJDIR)
 
-SRC       := $(foreach sdir,$(SRC_DIR),$(wildcard $(sdir)/*.c))
-OBJ       := $(patsubst src/%.c,bin/%.o,$(SRC))
-INCLUDES  := $(addprefix -I,$(SRC_DIR))
+OUT_DIR 	= bin bin/obj bin/ketje/JR
+MKDIR_P = mkdir -p
 
-vpath %.c $(SRC_DIR)
+#.PHONY: directories
 
-define make-goal
-$1/%.o: %.c
-	$(CC) $(INCLUDES) -c $$< -o $$@
-endef
-
-.PHONY: all checkdirs clean
-
-all: checkdirs bin/tiny-ketjeJr
-
-bin/tiny-ketjeJr: $(OBJ)
-	$(LD) $^ -o $@
+$(shell   mkdir -p $(OUT_DIR))
 
 
-checkdirs: $(BUILD_DIR)
+#$(OBJDIR)/keccakP200.o : $(KECCAK_PATH)/keccakP200.c
+#	$(CC) -c $< -o $@
 
-$(BUILD_DIR):
-	@mkdir -p $@
+$(OBJDIR)/%.o : $(KECCAK_PATH)/%.c
+	$(CC) -c $< -o $@
 
-clean:
-	@rm -rf $(BUILD_DIR)
+$(OBJDIR)/%.o : $(JR_PATH)/%.c
+	$(CC) -c $< -o $@
 
-$(foreach bdir,$(BUILD_DIR),$(eval $(call make-goal,$(bdir))))
+OBJPROG_JR = $(addprefix $(BIN_JR)/, $(PROG_JR))
+
+default: all
+
+all: $(OBJPROG_JR)
+
+$(OBJPROG_JR): $(addprefix $(OBJDIR)/, $(OBJ_JR))
+	$(LINK.o) $^ $(LDLIBS) -o $@
