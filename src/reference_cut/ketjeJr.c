@@ -575,7 +575,7 @@ int Ketje_GetTag(Ketje_Instance *instance, unsigned char *tag, unsigned int tagS
 }
 
 
-/*
+
 void test_ketje( const char *file, const unsigned char *expected )
 {
 	int keySizeInBits;
@@ -725,7 +725,7 @@ void test_ketje( const char *file, const unsigned char *expected )
     assert_2(memcmp(overallChecksum, expected, 16) == 0, "Wrong checksum");
 
 }
-*/
+
 void print_state(tKeccakLane* state){
     int i =0;
     for (i = 0; i < nrLanes; i++){
@@ -1036,10 +1036,10 @@ void teste_particular(){
 
 int main(void){
 
-    //test_ketje("KetjeJr.txt", "\x3b\x7d\xea\x9d\xf3\xe0\x58\x06\x98\x92\xc3\xc0\x05\x0f\x4b\xfd");
+    test_ketje("KetjeJr.txt", "\x3b\x7d\xea\x9d\xf3\xe0\x58\x06\x98\x92\xc3\xc0\x05\x0f\x4b\xfd");
     
-    meu_teste();
-    teste_particular();
+    ///meu_teste();
+    //teste_particular();
     return 0; 
 }
 

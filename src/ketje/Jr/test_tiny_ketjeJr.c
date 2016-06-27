@@ -278,9 +278,65 @@ int meu_teste(){
 #endif
 }
 
+void generateSimpleRawMaterial(unsigned char* data, unsigned int length, unsigned char seed1, unsigned int seed2)
+{
+    unsigned int i;
+
+    for( i=0; i<length; i++) {
+        unsigned int iRolled = i*seed1;
+        unsigned char byte = (iRolled+length+seed2)%0xFF;
+        data[i] = byte;
+    }
+}
+
+
+void dynamic_test(){
+
+    //176 for ketjeJr
+    int keySizeInBits = 0;  int keyMaxSizeInBits = 176;
+    //int keyMaxSizeInBits = SnP_width - 18;
+     #ifdef OUTPUT
+        FILE *f = fopen("dynamic_test", "w");
+    #endif
+
+    for( keySizeInBits=keyMaxSizeInBits; keySizeInBits >=96; keySizeInBits -= (keySizeInBits > 200) ? 96 : ((keySizeInBits > 128) ? 24 : 16)){
+        int nonceMaxSizeInBits = keyMaxSizeInBits - keySizeInBits;
+        int nonceSizeInBits;
+        for(nonceSizeInBits = nonceMaxSizeInBits; nonceSizeInBits >= ((keySizeInBits < 112) ? 0 : nonceMaxSizeInBits); nonceSizeInBits -= (nonceSizeInBits > 128) ? 161 : 64){
+            printf("keySizeInBits: %d\t nonceSizeInBits: %d\n", keySizeInBits, nonceSizeInBits);
+            Instance ketje1;
+            Instance ketje2;
+            unsigned char key[50], nonce[50]; memset(key, 0, 50); memset(nonce, 0, 50);
+            unsigned int ADlen;
+
+            generateSimpleRawMaterial(key, 50, 0x12+nonceSizeInBits, SnP_width);
+            generateSimpleRawMaterial(nonce, 50, 0x23+keySizeInBits, SnP_width);
+
+            ketje_monkeyduplex_start(&ketje1, key, nonce);
+            ketje_monkeyduplex_start(&ketje2, key, nonce);        
+
+            for( ADlen=0; ADlen<=400; ADlen=ADlen+ADlen/3+1+(keySizeInBits-96)+nonceSizeInBits/32){
+
+            }
+        }
+    }
+
+    /*
+    for( keySizeInBits=keyMaxSizeInBits; keySizeInBits >=96; keySizeInBits -= (keySizeInBits > 200) ? 100 : ((keySizeInBits > 128) ? 27 : 16)){
+        int nonceMaxSizeInBits = keyMaxSizeInBits - keySizeInBits;
+        int nonceSizeInBits;
+        for(nonceSizeInBits = nonceMaxSizeInBits; nonceSizeInBits >= ((keySizeInBits < 112) ? 0 : nonceMaxSizeInBits); nonceSizeInBits -= (nonceSizeInBits > 128) ? 161 : 65){
+            #define kname(nnn) #nnn
+            printf( "%s, key length is %u bits, nonce length is %u bits\n", kname(prefix), keySizeInBits, nonceSizeInBits );
+            #undef kname
+        }
+    }
+    */
+}
+
 int main (){ 
 
-    meu_teste();
-    
+    //meu_teste();
+    dynamic_test();
 	
 }
