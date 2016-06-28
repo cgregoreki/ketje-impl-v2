@@ -14,16 +14,7 @@ void print_state(unsigned char* state){
     printf("\n");
 }
 
-void print_in_hex(unsigned char* t){
-    int i =0;
-
-    for (i = 0; i < strlen(t); i++){
-        printf("%x ", t[i]);
-    }    
-    printf("\n");
-}
-
-void print_in_hex_len(unsigned char* t, int len){
+void print_in_hex_len(unsigned char* t, unsigned int len){
     int i =0;
 
     for (i = 0; i < len; i++){
@@ -214,7 +205,7 @@ void getAB(char * associatedData, char * dataBody, int i ){
     strcpy(associatedData, As[i]); strcpy(dataBody, Bs[i]);
 }
 
-
+/*
 int meu_teste(){
 
     #ifdef OUTPUT
@@ -277,6 +268,7 @@ int meu_teste(){
     return 0;
 #endif
 }
+*/
 
 void generateSimpleRawMaterial(unsigned char* data, unsigned int length, unsigned char seed1, unsigned int seed2)
 {
@@ -310,57 +302,39 @@ void dynamic_test(){
             unsigned char key[50], nonce[50]; memset(key, 0, 50*sizeof(unsigned char)); memset(nonce, 0, 50*sizeof(unsigned char));
             unsigned int ADlen; unsigned int keySize1; unsigned int nonceSize1;
             keySize1 = keySizeInBits / 8; nonceSize1 = nonceSizeInBits / 8;
-            //printf("temp: %u\n", temp);
 
             generateSimpleRawMaterial(key, keySize1, 0x12+nonceSizeInBits, SnP_width);
             generateSimpleRawMaterial(nonce, nonceSize1, 0x23+keySizeInBits, SnP_width);
 
-            printf("keylen: %d\t", (int) strlen(key)); print_in_hex_len(key, keySize1);
-            print_in_hex(nonce);
+            ketje_monkeyduplex_start(&ketje1, key, keySize1, nonce, nonceSize1);
+            ketje_monkeyduplex_start(&ketje2, key, keySize1, nonce, nonceSize1);
 
-            ketje_monkeyduplex_start(&ketje1, key, nonce);
-            ketje_monkeyduplex_start(&ketje2, key, nonce);
-
-            int mult = 1;
             unsigned int Nlen;
             for( ADlen=12; ADlen<20; ADlen++){
-                for( Nlen=19-ADlen; Nlen> 0; Nlen--){
+                for( Nlen=24-ADlen; Nlen> 0; Nlen--){
                     unsigned char associatedData[400], plaintext[400], ciphertext[400];
                     unsigned char plaintextPrime[400], tag1[16], tag2[16];
-                    
-                    memset(tag1, 0, sizeof(unsigned char)*16);
-                    memset(tag2, 0, sizeof(unsigned char)*16);
 
-                    memset(associatedData, 0, 400*sizeof(unsigned char)); memset(plaintext, 0, 400*sizeof(unsigned char));
-                    memset(ciphertext, 0, 400*sizeof(unsigned char)); memset(plaintextPrime, 0, 400*(sizeof(unsigned char)));
-                    
                     generateSimpleRawMaterial(associatedData, ADlen, 0x34+ Nlen, 3);
                     generateSimpleRawMaterial(plaintext, Nlen, 0x45+ ADlen, 4);
 
-                    //printf("associatedData: "); print_in_hex(associatedData);
-
-                    wrap3(&ketje1, associatedData, plaintext, ciphertext);
-                    unwrap3(&ketje2, associatedData, ciphertext, plaintextPrime);
-                    //printf("associatedData len: %d\n", (int)strlen(associatedData));
+                    unsigned int ciphertext_size = wrap3(&ketje1, associatedData, ADlen, plaintext, Nlen, ciphertext);
+                    unwrap3(&ketje2, associatedData, ADlen, ciphertext, ciphertext_size, plaintextPrime);
                     
                     generate_tag(&ketje1, tag1, 16);
                     generate_tag(&ketje2, tag2, 16);
 
                     if (memcmp(tag1, tag2, 16) != 0 ){
-                        // printf("soma: %d\n", ADlen + Nlen);
+                        printf("soma: %d\n", ADlen + Nlen);
                         soma[ADlen + Nlen] = soma[ADlen + Nlen] + 1;
-                        // printf("tag1: "); print_in_hex_len(tag1, 16); 
-                        // printf("tag2: "); print_in_hex_len(tag2, 16);
-                        // printf("\n");
+                        printf("tag1: "); print_in_hex_len(tag1, 16); 
+                        printf("tag2: "); print_in_hex_len(tag2, 16);
+                        printf("\n");
                     }
                 }
+
             }
         }
-    }
-
-    int i = 0;
-    for (i = 0; i < 25; i ++){
-        // printf("%d: %d\n", i, soma[i]);
     }
 }
 
