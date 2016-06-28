@@ -247,9 +247,9 @@ int meu_teste(){
             ketje_monkeyduplex_start(&ketje1, key, nonce);
             ketje_monkeyduplex_start(&ketje2, key, nonce);    
 
-            unsigned char A[400], B[400], C[400], B2[400], T1[17], T2[17];
+            unsigned char A[400], B[400], C[400], B2[400], T1[16], T2[16];
             memset(A, 0, 400); memset(B, 0, 400); memset(C, 0, 400); memset(B2, 0, 400);
-            memset(T1, 0, 17); memset(T2, 0, 17);
+            memset(T1, 0, 16); memset(T2, 0, 16);
 
             getAB(A, B, j);
 
@@ -292,6 +292,7 @@ void generateSimpleRawMaterial(unsigned char* data, unsigned int length, unsigne
 
 void dynamic_test(){
 
+    int soma[25]; memset(soma, 0, 25*sizeof(int));
     //176 for ketjeJr
     int keySizeInBits = 0;  int keyMaxSizeInBits = 176;
     //int keyMaxSizeInBits = SnP_width - 18;
@@ -304,39 +305,68 @@ void dynamic_test(){
         int nonceSizeInBits;
         for(nonceSizeInBits = nonceMaxSizeInBits; nonceSizeInBits >= ((keySizeInBits < 112) ? 0 : nonceMaxSizeInBits); nonceSizeInBits -= (nonceSizeInBits > 128) ? 161 : 64){
             printf("keySizeInBits: %d\t nonceSizeInBits: %d\n", keySizeInBits, nonceSizeInBits);
-            Instance ketje1;
-            Instance ketje2;
-            unsigned char key[50], nonce[50]; memset(key, 0, 50); memset(nonce, 0, 50);
-            unsigned int ADlen;
+            Instance ketje1; memset(&ketje1, 0, sizeof(Instance));
+            Instance ketje2; memset(&ketje2, 0, sizeof(Instance));
+            unsigned char key[50], nonce[50]; memset(key, 0, 50*sizeof(unsigned char)); memset(nonce, 0, 50*sizeof(unsigned char));
+            unsigned int ADlen; unsigned int keySize1; unsigned int nonceSize1;
+            keySize1 = keySizeInBits / 8; nonceSize1 = nonceSizeInBits / 8;
+            //printf("temp: %u\n", temp);
 
-            generateSimpleRawMaterial(key, 50, 0x12+nonceSizeInBits, SnP_width);
-            generateSimpleRawMaterial(nonce, 50, 0x23+keySizeInBits, SnP_width);
+            generateSimpleRawMaterial(key, keySize1, 0x12+nonceSizeInBits, SnP_width);
+            generateSimpleRawMaterial(nonce, nonceSize1, 0x23+keySizeInBits, SnP_width);
+
+            printf("keylen: %d\t", (int) strlen(key)); print_in_hex_len(key, keySize1);
+            print_in_hex(nonce);
 
             ketje_monkeyduplex_start(&ketje1, key, nonce);
-            ketje_monkeyduplex_start(&ketje2, key, nonce);        
+            ketje_monkeyduplex_start(&ketje2, key, nonce);
 
-            for( ADlen=0; ADlen<=400; ADlen=ADlen+ADlen/3+1+(keySizeInBits-96)+nonceSizeInBits/32){
+            int mult = 1;
+            unsigned int Nlen;
+            for( ADlen=12; ADlen<20; ADlen++){
+                for( Nlen=19-ADlen; Nlen> 0; Nlen--){
+                    unsigned char associatedData[400], plaintext[400], ciphertext[400];
+                    unsigned char plaintextPrime[400], tag1[16], tag2[16];
+                    
+                    memset(tag1, 0, sizeof(unsigned char)*16);
+                    memset(tag2, 0, sizeof(unsigned char)*16);
 
+                    memset(associatedData, 0, 400*sizeof(unsigned char)); memset(plaintext, 0, 400*sizeof(unsigned char));
+                    memset(ciphertext, 0, 400*sizeof(unsigned char)); memset(plaintextPrime, 0, 400*(sizeof(unsigned char)));
+                    
+                    generateSimpleRawMaterial(associatedData, ADlen, 0x34+ Nlen, 3);
+                    generateSimpleRawMaterial(plaintext, Nlen, 0x45+ ADlen, 4);
+
+                    //printf("associatedData: "); print_in_hex(associatedData);
+
+                    wrap3(&ketje1, associatedData, plaintext, ciphertext);
+                    unwrap3(&ketje2, associatedData, ciphertext, plaintextPrime);
+                    //printf("associatedData len: %d\n", (int)strlen(associatedData));
+                    
+                    generate_tag(&ketje1, tag1, 16);
+                    generate_tag(&ketje2, tag2, 16);
+
+                    if (memcmp(tag1, tag2, 16) != 0 ){
+                        // printf("soma: %d\n", ADlen + Nlen);
+                        soma[ADlen + Nlen] = soma[ADlen + Nlen] + 1;
+                        // printf("tag1: "); print_in_hex_len(tag1, 16); 
+                        // printf("tag2: "); print_in_hex_len(tag2, 16);
+                        // printf("\n");
+                    }
+                }
             }
         }
     }
 
-    /*
-    for( keySizeInBits=keyMaxSizeInBits; keySizeInBits >=96; keySizeInBits -= (keySizeInBits > 200) ? 100 : ((keySizeInBits > 128) ? 27 : 16)){
-        int nonceMaxSizeInBits = keyMaxSizeInBits - keySizeInBits;
-        int nonceSizeInBits;
-        for(nonceSizeInBits = nonceMaxSizeInBits; nonceSizeInBits >= ((keySizeInBits < 112) ? 0 : nonceMaxSizeInBits); nonceSizeInBits -= (nonceSizeInBits > 128) ? 161 : 65){
-            #define kname(nnn) #nnn
-            printf( "%s, key length is %u bits, nonce length is %u bits\n", kname(prefix), keySizeInBits, nonceSizeInBits );
-            #undef kname
-        }
+    int i = 0;
+    for (i = 0; i < 25; i ++){
+        // printf("%d: %d\n", i, soma[i]);
     }
-    */
 }
 
 int main (){ 
 
-    //meu_teste();
+    // meu_teste();
     dynamic_test();
 	
 }
