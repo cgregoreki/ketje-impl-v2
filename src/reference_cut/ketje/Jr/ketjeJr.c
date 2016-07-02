@@ -614,7 +614,7 @@ void dynamic_test(){
     for( keySizeInBits=keyMaxSizeInBits; keySizeInBits >=96; keySizeInBits -= (keySizeInBits > 200) ? 96 : ((keySizeInBits > 128) ? 24 : 16)){
         int nonceMaxSizeInBits = keyMaxSizeInBits - keySizeInBits;
         int nonceSizeInBits;
-        for(nonceSizeInBits = nonceMaxSizeInBits; nonceSizeInBits >= ((keySizeInBits < 112) ? 0 : nonceMaxSizeInBits); nonceSizeInBits -= (nonceSizeInBits > 128) ? 161 : 64){
+        for(nonceSizeInBits = nonceMaxSizeInBits; nonceSizeInBits >= ((keySizeInBits < 112) ? 0 : nonceMaxSizeInBits); nonceSizeInBits -= (nonceSizeInBits > 128) ? 160 : 64){
             
             Ketje_Instance ketje1; memset(&ketje1, 0, sizeof(Ketje_Instance));
             Ketje_Instance ketje2; memset(&ketje2, 0, sizeof(Ketje_Instance));

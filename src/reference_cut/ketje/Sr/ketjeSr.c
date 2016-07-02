@@ -6,6 +6,7 @@ typedef unsigned char UINT8;
 typedef unsigned short UINT16;
 typedef UINT16 tKeccakLane;
 #define KeccakP400_width 400
+#define SnP_width 400
 #define KeccakF_stateSizeInBytes 50
 
 #define Ketje_BlockSize (2*KeccakP400_width/8/25)
@@ -262,8 +263,9 @@ void Ket_UnwrapBlocks( void *state, const unsigned char *ciphertext, unsigned ch
     }
 }
 
-void Ket_WrapBlocks( void *state, const unsigned char *plaintext, unsigned char *ciphertext, unsigned int nBlocks )
+unsigned int Ket_WrapBlocks( void *state, const unsigned char *plaintext, unsigned char *ciphertext, unsigned int nBlocks )
 {
+    unsigned int ciphertext_size_on_blocks = 0;
     unsigned char keystream[Ketje_BlockSize];
     unsigned char plaintemp[Ketje_BlockSize];
     unsigned char frameAndPaddingBits[1];
@@ -273,20 +275,24 @@ void Ket_WrapBlocks( void *state, const unsigned char *plaintext, unsigned char 
         KeccakP400_ExtractBytes(state, keystream, 0, Ketje_BlockSize);
         plaintemp[0] = plaintext[0];
         plaintemp[1] = plaintext[1];
+
         #if (KeccakP400_width == 400 )
         plaintemp[2] = plaintext[2];
         plaintemp[3] = plaintext[3];
         #endif
         *(ciphertext++) = *(plaintext++) ^ keystream[0];
         *(ciphertext++) = *(plaintext++) ^ keystream[1];
+        ciphertext_size_on_blocks++; ciphertext_size_on_blocks++;
         #if (KeccakP400_width == 400 )
         *(ciphertext++) = *(plaintext++) ^ keystream[2];
         *(ciphertext++) = *(plaintext++) ^ keystream[3];
+        ciphertext_size_on_blocks++; ciphertext_size_on_blocks++;
         #endif
         KeccakP400_AddBytes(state, plaintemp, 0, Ketje_BlockSize);
         KeccakP400_AddBytes(state, frameAndPaddingBits, Ketje_BlockSize, 1);
         keccakP400NRounds(state, Ket_StepRounds);
     }
+    return ciphertext_size_on_blocks;
 }
 
 
@@ -304,7 +310,7 @@ int Ketje_Initialize(Ketje_Instance *instance, const unsigned char *key, unsigne
     instance->phase = Ketje_Phase_FeedingAssociatedData;
     instance->dataRemainderSize = 0;
 
-    //KeccakP400_StaticInitialize();
+    KeccakP400_StaticInitialize();
     KeccakP400_Initialize(instance->state);
 
     // Key pack
@@ -372,6 +378,7 @@ int Ketje_FeedAssociatedData(Ketje_Instance *instance, const unsigned char *data
 
 int Ketje_WrapPlaintext(Ketje_Instance *instance, const unsigned char *plaintext, unsigned char *ciphertext, unsigned int dataSizeInBytes )
 {
+    unsigned int ciphertext_size = 0;
     unsigned int size;
     unsigned char temp;
 
@@ -395,6 +402,7 @@ int Ketje_WrapPlaintext(Ketje_Instance *instance, const unsigned char *plaintext
             {
                 temp = *(plaintext++);
                 *(ciphertext++) = temp ^ Ket_StateExtractByte( instance->state, instance->dataRemainderSize );
+                ciphertext_size++;
                 KeccakP400_AddByte( instance->state, temp, instance->dataRemainderSize++ );
                 --dataSizeInBytes;
             }
@@ -406,7 +414,7 @@ int Ketje_WrapPlaintext(Ketje_Instance *instance, const unsigned char *plaintext
         if ( dataSizeInBytes > Ketje_BlockSize )
         {
             size = ((dataSizeInBytes + (Ketje_BlockSize - 1)) & ~(Ketje_BlockSize - 1)) - Ketje_BlockSize;
-            Ket_WrapBlocks( instance->state, plaintext, ciphertext, size / Ketje_BlockSize );
+            ciphertext_size += Ket_WrapBlocks( instance->state, plaintext, ciphertext, size / Ketje_BlockSize );
             dataSizeInBytes -= size;
             plaintext += size;
             ciphertext += size;
@@ -418,10 +426,11 @@ int Ketje_WrapPlaintext(Ketje_Instance *instance, const unsigned char *plaintext
     {
         temp = *(plaintext++);
         *(ciphertext++) = temp ^ Ket_StateExtractByte( instance->state, instance->dataRemainderSize );
+        ciphertext_size++;
         KeccakP400_AddByte( instance->state, temp, instance->dataRemainderSize++ );
     }
 
-    return 0;
+    return ciphertext_size;
 }
 
 int Ketje_UnwrapCiphertext(Ketje_Instance *instance, const unsigned char *ciphertext, unsigned char *plaintext, unsigned int dataSizeInBytes)
@@ -541,8 +550,114 @@ static void displayByteString(FILE *f, const char* synopsis, const unsigned char
     fprintf(f, "\n");
 }
 
+void generateSimpleRawMaterial(unsigned char* data, unsigned int length, unsigned char seed1, unsigned int seed2)
+{
+    unsigned int i;
 
+    for( i=0; i<length; i++) {
+        unsigned int iRolled = i*seed1;
+        unsigned char byte = (iRolled+length+seed2)%0xFF;
+        data[i] = byte;
+    }
+}
+
+void printf_rho_offsets(){
+    int i = 0;
+    printf("Round constants:\n");
+    for (i = 0; i < nrLanes; i++){
+        printf("%d ", KeccakRhoOffsets[i]);
+    }
+    printf("\n");
+
+}
+
+void printf_round_constants(){
+    int i = 0;
+    printf("Round constants:\n");
+    for (i = 0; i < maxNrRounds; i++){
+        printf("%x ", KeccakRoundConstants[i]);
+    }
+    printf("\n");
+
+}   
+
+void dynamic_test(){
+
+    //376 for ketjeSr
+    int keySizeInBits = 0;  int keyMaxSizeInBits = 376;
+     #ifdef OUTPUT
+        FILE *f = fopen("dynamic_test_ref_Sr.txt", "w");
+    #endif
+
+    for( keySizeInBits=keyMaxSizeInBits; keySizeInBits >=96; keySizeInBits -= (keySizeInBits > 200) ? 96 : ((keySizeInBits > 128) ? 24 : 16)){
+        int nonceMaxSizeInBits = keyMaxSizeInBits - keySizeInBits;
+        int nonceSizeInBits;
+        for(nonceSizeInBits = nonceMaxSizeInBits; nonceSizeInBits >= ((keySizeInBits < 112) ? 0 : nonceMaxSizeInBits); nonceSizeInBits -= (nonceSizeInBits > 128) ? 160 : 64){
+            
+            Ketje_Instance ketje1; memset(&ketje1, 0, sizeof(Ketje_Instance));
+            Ketje_Instance ketje2; memset(&ketje2, 0, sizeof(Ketje_Instance));
+            unsigned char key[50], nonce[50]; memset(key, 0, 50*sizeof(unsigned char)); memset(nonce, 0, 50*sizeof(unsigned char));
+            unsigned int ADlen; unsigned int keySize1; unsigned int nonceSize1;
+            keySize1 = keySizeInBits / 8; nonceSize1 = nonceSizeInBits / 8;
+
+            generateSimpleRawMaterial(key, keySize1, 0x12+nonceSizeInBits, SnP_width);
+            generateSimpleRawMaterial(nonce, nonceSize1, 0x23+keySizeInBits, SnP_width);
+
+            Ketje_Initialize(&ketje1, key, keySizeInBits, nonce, nonceSizeInBits);
+            Ketje_Initialize(&ketje2, key, keySizeInBits, nonce, nonceSizeInBits);
+
+#ifdef OUTPUT
+            fprintf(f, "***\n");
+            fprintf(f, "initialize with key of %u bits, nonce of %u bits:\n", keySizeInBits, nonceSizeInBits);
+            displayByteString(f, "key", key, keySizeInBits/8);
+            displayByteString(f, "nonce", nonce, nonceSizeInBits/8);
+            fprintf(f, "\n");
+#endif            
+
+            unsigned int Nlen;
+            for( ADlen=12; ADlen<40; ADlen++){
+                for( Nlen=49-ADlen; Nlen> 0 ; Nlen--){
+                    unsigned char associatedData[400], plaintext[400], ciphertext[400];
+                    unsigned char plaintextPrime[400], tag1[16], tag2[16];
+
+                    generateSimpleRawMaterial(associatedData, ADlen, 0x34+ Nlen, 3);
+                    generateSimpleRawMaterial(plaintext, Nlen, 0x45+ ADlen, 4);
+
+                    Ketje_FeedAssociatedData(&ketje1, associatedData, ADlen);                   
+                    Ketje_FeedAssociatedData(&ketje2, associatedData, ADlen);
+
+                    unsigned int ciphertext_size = Ketje_WrapPlaintext(&ketje1, plaintext, ciphertext, Nlen);
+                    Ketje_UnwrapCiphertext(&ketje2, ciphertext, plaintextPrime, ciphertext_size);
+                    
+                    Ketje_GetTag(&ketje1, tag1, 16);
+                    Ketje_GetTag(&ketje2, tag2, 16);
+
+                    if (memcmp(tag1, tag2, 16) != 0 ){
+                        printf("tag1: "); print_in_hex_len(tag1, 16); 
+                        printf("tag2: "); print_in_hex_len(tag2, 16);
+                        printf("\n");
+                    }
+
+#ifdef OUTPUT
+                    displayByteString(f, "associated data", associatedData, ADlen);
+                    displayByteString(f, "plaintext", plaintext, Nlen);
+                    displayByteString(f, "ciphertext", ciphertext, ciphertext_size);
+                    displayByteString(f, "tag 1", tag1, 16);
+                    displayByteString(f, "tag 2", tag2, 16);
+                    fprintf(f, "\n");
+#endif
+                }
+
+            }
+        }
+    }
+#ifdef OUTPUT
+    fclose(f);
+    printf("Log wrote to dynamic_test_ref_Sr.txt\n");
+#endif
+}
 int main(){
-    //test_sr();
+    
+    dynamic_test();
 	return 0;
 }

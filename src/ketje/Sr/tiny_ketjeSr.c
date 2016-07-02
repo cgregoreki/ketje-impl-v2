@@ -71,10 +71,7 @@
 		add_Byte(state, 0x08, Ketje_BlockSize);
 
 		// executa o round do keccak n_Step vezes.
-		int i = 0;
-		for(i=(maxNrRounds-nstep); i<maxNrRounds; i++){
-			Round400(state, i);
-		}
+		keccakP400NRounds(state, nstep);
 	}
 
 	void Ketje_stride(void *state, int size, unsigned char padding){
@@ -91,7 +88,7 @@
 
 		unsigned char key_pack[maxKeyBytes + 2];
 
-		ketje_inst->dataRemainderSize = 0;
+		ketje_inst->dataRemainderSize = 0;	
 
 		initialize_mem_state(ketje_inst->state);
 		unsigned int key_Pack_size = init_keypack(key_pack, key, keySize);
@@ -106,12 +103,10 @@
 		memcpy((unsigned char*)ketje_inst->state + key_Pack_size + nonceSize, &pad, 1);
 
 		//agora colocamos o padding final do estado.
-		//memcpy((unsigned char*)ketje_inst->state + state_width/8 -1, &pad_final, 1);
 		add_Byte(ketje_inst->state, pad_final, state_width/8 -1);
 
-		//agora chama a funcao esponja (keccakP200) nstart vezes.
-		for(count = (maxNrRounds - nstart); count < maxNrRounds; count++)
-			Round400(ketje_inst->state, count);		
+		//agora chama a funcao esponja (keccakP400) nstart vezes.
+		keccakP400NRounds(ketje_inst->state, nstart);
 	}
 
 	void put_headers(Instance * instance, unsigned char *A, unsigned int dataSizeInBytes_A){
