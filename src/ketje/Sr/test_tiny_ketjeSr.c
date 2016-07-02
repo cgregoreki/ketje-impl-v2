@@ -104,7 +104,6 @@ void dynamic_test(){
                         printf("tag2: "); print_in_hex_len(tag2, 16);
                         printf("\n");
                     }
-
 #ifdef OUTPUT
                     displayByteString(f, "associated data", associatedData, ADlen);
                     displayByteString(f, "plaintext", plaintext, Nlen);
@@ -114,7 +113,6 @@ void dynamic_test(){
                     fprintf(f, "\n");
 #endif
                 }
-
             }
         }
     }

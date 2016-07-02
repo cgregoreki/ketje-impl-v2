@@ -80,8 +80,8 @@ void dynamic_test(){
 #endif            
 
             unsigned int Nlen;
-            for( ADlen=12; ADlen<20; ADlen++){
-                for( Nlen=24-ADlen; Nlen> 0; Nlen--){
+            for( ADlen=12; ADlen<13; ADlen++){
+                for( Nlen=24-ADlen; Nlen> 24-ADlen-1; Nlen--){
                     unsigned char associatedData[400], plaintext[400], ciphertext[400];
                     unsigned char plaintextPrime[400], tag1[16], tag2[16];
 
@@ -110,7 +110,6 @@ void dynamic_test(){
                     fprintf(f, "\n");
 #endif
                 }
-
             }
         }
     }

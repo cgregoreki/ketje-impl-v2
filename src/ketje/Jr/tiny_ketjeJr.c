@@ -114,8 +114,6 @@
 		//memcpy((unsigned char*)ketje_inst->state + state_width/8 -1, &pad_final, 1);
 		add_Byte(ketje_inst->state, pad_final, state_width/8 -1);
 
-		// printf("after keypack: \n");
-  //   	print_state(ketje_inst->state);
 		//agora chama a funcao esponja (keccakP200) nstart vezes.
 		for(count = (maxNrRounds - nstart); count < maxNrRounds; count++)
 			Round200(ketje_inst->state, count);		

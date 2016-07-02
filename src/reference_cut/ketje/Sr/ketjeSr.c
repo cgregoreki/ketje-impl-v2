@@ -56,36 +56,6 @@ int LFSR86540(UINT8 *LFSR)
     return result;
 }
 
-void KeccakP400_AddByte(void *state, unsigned char byte, unsigned int offset)
-{
-    assert(offset < 50);
-    ((unsigned char *)state)[offset] ^= byte;
-}
-
-void KeccakP400_StaticInitialize()
-{
-    if (sizeof(tKeccakLane) != 2) {
-        printf("tKeccakLane should be 16-bit wide\n");
-        abort();
-    }
-    KeccakP400_InitializeRoundConstants();
-    KeccakP400_InitializeRhoOffsets();
-}
-
-void KeccakP400_AddBytes(void *state, const unsigned char *data, unsigned int offset, unsigned int length)
-{
-    unsigned int i;
-
-    assert(offset < 50);
-    assert(offset+length <= 50);
-    for(i=0; i<length; i++)
-        ((unsigned char *)state)[offset+i] ^= data[i];
-}
-
-void KeccakP400_OverwriteBytes(void *state, const unsigned char *data, unsigned int offset, unsigned int length)
-{
-    memcpy((unsigned char*)state+offset, data, length);
-}
 
 
 void KeccakP400_InitializeRoundConstants()
@@ -121,6 +91,34 @@ void KeccakP400_InitializeRhoOffsets()
         y = newY;
     }
 }
+
+void KeccakP400_AddByte(void *state, unsigned char byte, unsigned int offset)
+{
+    assert(offset < 50);
+    ((unsigned char *)state)[offset] ^= byte;
+}
+
+void KeccakP400_StaticInitialize()
+{
+    KeccakP400_InitializeRoundConstants();
+    KeccakP400_InitializeRhoOffsets();
+}
+
+void KeccakP400_AddBytes(void *state, const unsigned char *data, unsigned int offset, unsigned int length)
+{
+    unsigned int i;
+
+    assert(offset < 50);
+    assert(offset+length <= 50);
+    for(i=0; i<length; i++)
+        ((unsigned char *)state)[offset+i] ^= data[i];
+}
+
+void KeccakP400_OverwriteBytes(void *state, const unsigned char *data, unsigned int offset, unsigned int length)
+{
+    memcpy((unsigned char*)state+offset, data, length);
+}
+
 void KeccakP400_Initialize(void *state)
 {
     memset(state, 0, nrLanes * sizeof(tKeccakLane));
@@ -197,19 +195,19 @@ void keccakP400NRounds(void* state, int rounds){
     }
 }
 
+void KeccakP400_ExtractBytes(const void *state, unsigned char *data, unsigned int offset, unsigned int length)
+{
+    assert(offset < 50);
+    assert(offset+length <= 50);
+    memcpy(data, (unsigned char*)state+offset, length);
+}
+
 unsigned char Ket_StateExtractByte( void *state, unsigned int offset )
 {
     unsigned char data[1];
 
     KeccakP400_ExtractBytes(state, data, offset, 1);
     return data[0];
-}
-
-void KeccakP400_ExtractBytes(const void *state, unsigned char *data, unsigned int offset, unsigned int length)
-{
-    assert(offset < 50);
-    assert(offset+length <= 50);
-    memcpy(data, (unsigned char*)state+offset, length);
 }
 
 void Ket_StateOverwrite( void *state, unsigned int offset, const unsigned char *data, unsigned int length )
@@ -523,17 +521,6 @@ void print_state(unsigned char* state){
     printf("\n");
 }
 
-
-void print_in_hex(unsigned char* t){
-        int i =0;
-
-        for (i = 0; i < strlen(t); i++){
-            printf("%x ", t[i]);
-        }    
-        printf("\n");
-    }
-
-
 void print_in_hex_len(unsigned char* t, int len){
     int i =0;
 
@@ -543,158 +530,6 @@ void print_in_hex_len(unsigned char* t, int len){
     printf("\n");
 }
 
-void getKeyAndNonce(unsigned char * key, unsigned char * nonce, int i){
-    const char * keys[33] = { 
-        "",
-        "",
-        "a",
-        "esu",
-        "jag",
-        "eda",
-        "mim",
-        "vri",    
-        "fribble",
-        "alberti",
-        "hugeous",
-        "machado",
-        "solutus",
-        "preadmission",
-        "isodimorphic",
-        "quenchlessly",
-        "deflationary",
-        "compunctious",
-        "superinfluencing",
-        "classificational",
-        "palaeoentomology",
-        "conventionalised",
-        "indigestibleness",
-        "misapprehensiveranging",
-        "nondistinguishableness",
-        "counterrevolutionaries",
-        "phenylethylmalonylurea",
-        "noninterchangeableness",
-        "",
-        "",
-        "",
-        "",
-        ""
-    };
-
-    const char * nonces[33]= {
-        "",
-        "a",
-        "",
-        "mid",
-        "lag",
-        "cdr",
-        "ben",
-        "crl",
-        "balaton",
-        "sennett",
-        "minever",
-        "anglify",
-        "duotone",
-        "commiously",
-        "antisepous",
-        "unmodeized",
-        "nonexempon",
-        "parallezed",
-        "antico",
-        "noncol",
-        "subtri",
-        "palaeo",
-        "undera",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "spectrophotometrically",
-        "deoxyribonucleoprotein",
-        "pseudoenthusiastically",
-        "hexamethylenetetramine",
-        "succinylsulphathiazole"
-    };
-    strcpy(key, keys[i]); strcpy(nonce,nonces[i]);
-}
-
-void getAB(char * associatedData, char * dataBody, int i ){
-
-    const char * As[33] = {
-        "phlebothrombosis",
-        "suberose",
-        "antidogmatical",
-        "twistedly",
-        "denasalizing",
-        "precontemporaneous",
-        "vigo",
-        "hoofiness",
-        "nonsane",
-        "dandler",
-        "sweetmeat",
-        "bate",
-        "bilateralness",
-        "anthracoid",
-        "cried",
-        "bhishti",
-        "gravitationally",
-        "anisic",
-        "doralice",
-        "epileptiform",
-        "cbd",
-        "gtc",
-        "swayback",
-        "sabbat",
-        "preantepenultimate",
-        "traditionally",
-        "twerp",
-        "undeducible",
-        "postbrachium",
-        "cedartown",
-        "bunchflower",
-        "sedan",
-        "unpartaking"
-    };
-
-    const char * Bs[33] = {
-        "hinny",
-        "parrakeet",
-        "stelae",
-        "glarus",
-        "counterplotting",
-        "changchow",
-        "caseworker",
-        "pompeian",
-        "rawly",
-        "methodically",
-        "unmuttering",
-        "recleansed",
-        "maimonidean",
-        "imputting",
-        "unforeknowable",
-        "semiresiny",
-        "moshe",
-        "noncatechistic",
-        "overfertility",
-        "upsides",
-        "defrock",
-        "amortization",
-        "crumbum",
-        "godey",
-        "uredinial",
-        "geog",
-        "dasyurine",
-        "outmost",
-        "semipaste",
-        "interpenetration",
-        "reirrigating",
-        "weer",
-        "goutiness"
-    };
-
-    //memcpy(associatedData, As[i], strlen(As[i])); *dataBody = Bs[i];
-    strcpy(associatedData, As[i]); strcpy(dataBody, Bs[i]);
-}
 
 static void displayByteString(FILE *f, const char* synopsis, const unsigned char *data, unsigned int length)
 {
@@ -706,70 +541,8 @@ static void displayByteString(FILE *f, const char* synopsis, const unsigned char
     fprintf(f, "\n");
 }
 
-void test_sr(){
-
-    #ifdef OUTPUT
-        FILE *f = fopen("text.txt", "w");
-    #endif
-
-    int i, j = 0;
-
-    for (i = 0; i < 33; i++){
-        Ketje_Instance ketje1, ketje2;
-        unsigned char key[50], nonce[50];
-        memset(key, 0, 50); memset(nonce, 0, 50);
-
-        getKeyAndNonce(key, nonce, i);
-        Ketje_Initialize(&ketje1, key, strlen(key)*8,nonce,strlen(nonce)*8);
-        Ketje_Initialize(&ketje2, key, strlen(key)*8,nonce,strlen(nonce)*8);
-
-#ifdef OUTPUT
-        fprintf(f, "***\n");
-        fprintf(f, "initialize with key of %u bits, nonce of %u bits:\n", strlen(key)*8, strlen(nonce)*8);
-        displayByteString(f, "key", key, strlen(key));
-        displayByteString(f, "nonce", nonce, strlen(nonce));
-        fprintf(f, "\n");
-#endif
-        for (j = 0; j < 33; j++){
-            // para cada chave, pega todos os bodys and associatedDatas e roda o ketje.
-            memset(&ketje1, 0, sizeof(Ketje_Instance));
-            memset(&ketje2, 0, sizeof(Ketje_Instance));
-            Ketje_Initialize(&ketje1, key, strlen(key)*8,nonce,strlen(nonce)*8);
-            Ketje_Initialize(&ketje2, key, strlen(key)*8,nonce,strlen(nonce)*8);  
-
-            unsigned char A[400], B[400], C[400], B2[400], T1[16], T2[16];
-            memset(A, 0, 400); memset(B, 0, 400); memset(C, 0, 400); memset(B2, 0, 400);
-            memset(T1, 0, 16); memset(T2, 0, 16);
-
-            getAB(A, B, j);
-
-            Ketje_FeedAssociatedData(&ketje1, A, strlen(A));
-            Ketje_FeedAssociatedData(&ketje2, A, strlen(A));
-
-            Ketje_WrapPlaintext(&ketje1, B, C, strlen(B));
-            Ketje_UnwrapCiphertext(&ketje2, C, B2, strlen(C));
-
-            Ketje_GetTag(&ketje1, T1, 16);
-            Ketje_GetTag(&ketje2, T2, 16);
-
-#ifdef OUTPUT
-            displayByteString(f, "associated data", A, strlen(A));
-            displayByteString(f, "plaintext", B, strlen(B));
-            displayByteString(f, "ciphertext", C, strlen(B));
-            displayByteString(f, "tag 1", T1, 16);
-            displayByteString(f, "tag 2", T2, 16);
-            fprintf(f, "\n");
-#endif
-        }   
-    }
-
-#ifdef OUTPUT    
-    fclose(f);
-    printf("Log wrote to text.txt\n");
-#endif
-}
 
 int main(){
-    test_sr();
+    //test_sr();
 	return 0;
 }
