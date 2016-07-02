@@ -522,13 +522,6 @@ int Ketje_GetTag(Ketje_Instance *instance, unsigned char *tag, unsigned int tagS
     return 0;
 }
 
-void print_state(unsigned char* state){
-    int i =0;
-    for (i = 0; i < nrLanes; i++){
-        printf("%x ", state[i]);
-    }    
-    printf("\n");
-}
 
 void print_in_hex_len(unsigned char* t, int len){
     int i =0;
@@ -560,26 +553,6 @@ void generateSimpleRawMaterial(unsigned char* data, unsigned int length, unsigne
         data[i] = byte;
     }
 }
-
-void printf_rho_offsets(){
-    int i = 0;
-    printf("Round constants:\n");
-    for (i = 0; i < nrLanes; i++){
-        printf("%d ", KeccakRhoOffsets[i]);
-    }
-    printf("\n");
-
-}
-
-void printf_round_constants(){
-    int i = 0;
-    printf("Round constants:\n");
-    for (i = 0; i < maxNrRounds; i++){
-        printf("%x ", KeccakRoundConstants[i]);
-    }
-    printf("\n");
-
-}   
 
 void dynamic_test(){
 

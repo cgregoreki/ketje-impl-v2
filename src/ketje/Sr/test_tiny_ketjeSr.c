@@ -5,24 +5,6 @@
 #define OUTPUT
 #define SnP_width 400
 
-
-void print_state(unsigned char* state){
-    int i =0;
-    for (i = 0; i < nrLanes; i++){
-        printf("%x ", state[i]);
-    }    
-    printf("\n");
-}
-
-void print_in_hex(unsigned char* t){
-    int i =0;
-
-    for (i = 0; i < strlen(t); i++){
-        printf("%x ", t[i]);
-    }    
-    printf("\n");
-}
-
 void print_in_hex_len(unsigned char* t, int len){
     int i =0;
 
