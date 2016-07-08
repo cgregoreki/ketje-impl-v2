@@ -1,5 +1,5 @@
-CC			= gcc
-
+CC		= gcc
+CFLAGS		= -OS
 #
 PROG_JR 	= test_tiny_ketjeJr
 PROG_SR 	= test_tiny_ketjeSr
@@ -57,16 +57,16 @@ default: all
 all: $(OBJPROG_JR) $(OBJPROG_SR) $(OBJPROG_REF_JR) $(OBJPROG_REF_SR)
 
 $(OBJPROG_JR): $(addprefix $(OBJDIR)/, $(OBJ_JR))
-	$(LINK.o) $^ $(LDLIBS) -o $@
+	$(LINK.o) $^ $(LDLIBS) -o $@ $(CFLAGS)
 
 $(OBJPROG_SR): $(addprefix $(OBJDIR)/, $(OBJ_SR))
-	$(LINK.o) $^ $(LDLIBS) -o $@
+	$(LINK.o) $^ $(LDLIBS) -o $@ $(CFLAGS)
 
 $(OBJPROG_REF_JR): $(addprefix $(OBJDIR)/, $(OBJ_REF_JR))
-	$(LINK.o) $^ $(LDLIBS) -o $@
+	$(LINK.o) $^ $(LDLIBS) -o $@ $(CFLAGS)
 
 $(OBJPROG_REF_SR): $(addprefix $(OBJDIR)/, $(OBJ_REF_SR))
-	$(LINK.o) $^ $(LDLIBS) -o $@
+	$(LINK.o) $^ $(LDLIBS) -o $@ $(CFLAGS)
 
 clean: 
 	@rm -rf bin
