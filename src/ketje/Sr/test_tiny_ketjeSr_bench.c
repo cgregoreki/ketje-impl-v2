@@ -103,29 +103,32 @@ void dynamic_test(){
     printf("Log wrote to dynamic_test_Jr.txt\n");
 #endif
 }
+
+
 int enabled = 0;
 
 unsigned int get_cycles(void) {
-	unsigned int value = 0;
-	if (!enabled) {
-		/*
-		 * This relies on a Kernel module described in:
-		 * http://stackoverflow.com/questions/3247373/
-		 * how-to-measure-program-execution-time-in-arm-cortex-a8-processor
-		 */
-		asm("mcr p15, 0, %0, c9, c12, 0" :: "r"(17));
-		asm("mcr p15, 0, %0, c9, c12, 1" :: "r"(0x8000000f));
-		asm("mcr p15, 0, %0, c9, c12, 3" :: "r"(0x8000000f));
-		enabled = 1;
-	}
-	asm("mrc p15, 0, %0, c9, c13, 0" : "=r"(value));
-	return value;
+    unsigned int value = 0;
+    if (!enabled) {
+        /*
+         * This relies on a Kernel module described in:
+         * http://stackoverflow.com/questions/3247373/
+         * how-to-measure-program-execution-time-in-arm-cortex-a8-processor
+         */
+        asm("mcr p15, 0, %0, c9, c12, 0" :: "r"(17));
+        asm("mcr p15, 0, %0, c9, c12, 1" :: "r"(0x8000000f));
+        asm("mcr p15, 0, %0, c9, c12, 3" :: "r"(0x8000000f));
+        enabled = 1;
+    }
+    asm("mrc p15, 0, %0, c9, c13, 0" : "=r"(value));
+    return value;
 }
-int main (){ 
-    unsigned int cycles= 0;
-    printf("%u\n",get_cycles());
+
+int main(void){
+    unsigned int c = 0; c =  get_cycles();
     dynamic_test();
-    printf("%u\n",get_cycles());
-    
-	return 0;
+    c = get_cycles() - c;
+    printf("%u\n", c);
+    return 0; 
 }
+
