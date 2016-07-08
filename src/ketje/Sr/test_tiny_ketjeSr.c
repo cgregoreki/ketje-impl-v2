@@ -100,7 +100,7 @@ void dynamic_test(){
     }
 #ifdef OUTPUT
     fclose(f);
-    printf("Log wrote to dynamic_test_Jr.txt\n");
+    printf("Log wrote to dynamic_test_Sr.txt\n");
 #endif
 }
 
