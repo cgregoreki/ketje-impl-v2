@@ -4,8 +4,6 @@ Este projeto é uma implementação alternativa do algoritmo de criptografia Ket
 
 Essa implementação foi construída tendo como objetivo simplificar a leitura do código para que seus passos ficassem mais próximos da especificação. Para conseguir isso, abriu-se mão da versatilidade do algoritmo aceitar *keys* e *nonces* de qualquer tamanho de bits, implementando o caso mais comum que são os *keys* e *nonces* com tamanhos em bits múltiplos de 8. 
 
-Além disso, a biblioteca *<string.h>* foi utilizada em alguns momentos, o que pode gerar certo impacto na performance.
-
 ## Como ler e entender o código
 
 É interessante que o leitor tenha em mãos a [especificação do algoritmo](http://ketje.noekeon.org/Ketje-1.1.pdf). 
