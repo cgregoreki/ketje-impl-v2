@@ -12,8 +12,6 @@ Posteriormente, ao seguir a leitura do código, observar o nome das funções qu
 
 Além disso, houve uma tentativa de atingir maior proximidade com a especificação nomeando os argumentos das funções codificadas da mesma maneira que estão escritos no documento. 
 
-Para simplificar a comparação, comentários no código fazem a separação das partes relacionadas na especificação.
-
 ## Como executar o código
 
 Este projeto contém um *Makefile* que deve executar a compilação do código.
